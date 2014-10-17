@@ -1,26 +1,27 @@
 import gifAnimation.*;
 
-float x1, x2, y1, y2;
-float angle1, angle2;
-float scalar = 70;
-
 float cameraRotateX = -PI/2.0;
 float cameraRotateY = 0.0;
 
-float rotorAngle = 0.0;
-float rpm = 75;
+float rpm = 90;
 float lastFrame = millis();
 float delta = 1.0;
 boolean doExport = false;
 GifMaker gifExport;
 float fr = 30;
+Rotor rotor;
 
 void setup() 
 {
   size(500, 500, P3D); 
   background(0);
   //noStroke();
+  colorMode(HSB, 100);
+  rotor = new Rotor(300, 100);
   rectMode(CENTER);
+  println("LEDs = " + rotor.totalLEDs);
+  println("Struth lengths = ");
+  rotor.printStruts();
   
   if (doExport) {
     frameRate(fr);
@@ -34,43 +35,18 @@ void setup()
 
 void exit() {
   println("exiting");
-  //gifExport.finish();
+  if (doExport) {
+    gifExport.finish();
+  }
   super.exit();
 }
 
 void draw() 
 {   
   background(0);
-//  if (!mousePressed) {
-//    lights();
-//  }
-//  movingStuff();
   delta = millis() - lastFrame;
   lastFrame = millis();
   
-  
-//  fill(255, 204);
-//  rect(mouseX, height/2, mouseY/2+10, mouseY/2+10);
-//  
-//  fill(255, 204);
-//  int inverseX = width-mouseX;
-//  int inverseY = height-mouseY;
-//  rect(inverseX, height/2, (inverseY/2)+10, (inverseY/2)+10);
-//  
-//  noStroke();
-//  pushMatrix();
-//  translate(130, height/2, 0);
-//  rotateY(1.25);
-//  rotateX(-0.4);
-//  box(100);
-//  popMatrix();
-//
-//  noFill();
-//  stroke(255);
-//  pushMatrix();
-//  translate(500, height*0.35, -200);
-//  sphere(280);
-//  popMatrix();
   translate(width/2.0, height/2.0, 0);
   if (mousePressed) {
     cameraRotateX = ((mouseY) - (height/2.0)) / (height/PI);
@@ -79,7 +55,8 @@ void draw()
   rotateX(cameraRotateX);
   rotateZ(cameraRotateY);
   
-  rotor();
+  rotor.update();
+  
   
   if (doExport) {
     gifExport.setDelay((int)delta);
@@ -91,142 +68,240 @@ void draw()
   }
 }
 
-void drawCylinder(int sides, float r, float h)
-{
-    float angle = 360 / sides;
-    float halfHeight = h / 2;
-    // draw top shape
-    beginShape();
-    for (int i = 0; i < sides; i++) {
-        float x = cos( radians( i * angle ) ) * r;
-        float y = sin( radians( i * angle ) ) * r;
-        vertex( x, y, -halfHeight );
-        normal( 0, 0, 1); 
-    }
-    endShape(CLOSE);
-    // draw bottom shape
-    beginShape();
-    for (int i = 0; i < sides; i++) {
-        float x = cos( radians( i * angle ) ) * r;
-        float y = sin( radians( i * angle ) ) * r;
-        vertex( x, y, halfHeight );
-        normal( 0, 0, -1); 
-    }
-    endShape(CLOSE);
-    
-    // draw body
-    beginShape(TRIANGLE_STRIP);
-    for (int i = 0; i < sides + 1; i++) {
-        float x = cos( radians( i * angle ) ) * r;
-        float y = sin( radians( i * angle ) ) * r;
-        vertex( x, y, halfHeight);
-        normal( 1, 0, 0);
-        vertex( x, y, -halfHeight);
-        normal( 0, 1, 0);    
-    }
-    endShape(CLOSE);
-}
-
-void movingStuff() {
-    float ang1 = radians(angle1);
-  float ang2 = radians(angle2);
-
-  x1 = width/2 + (scalar * cos(ang1));
-  x2 = width/2 + (scalar * cos(ang2));
-  
-  y1 = height/2 + (scalar * sin(ang1));
-  y2 = height/2 + (scalar * sin(ang2));
-  
-  fill(255);
-  rect(width*0.5, height*0.5, 140, 140);
-
-  fill(0, 102, 153);
-  ellipse(x1, height*0.5 - 120, scalar, scalar);
-  ellipse(x2, height*0.5 + 120, scalar, scalar);
-  
-  fill(255, 204, 0);
-  ellipse(width*0.5 - 120, y1, scalar, scalar);
-  ellipse(width*0.5 + 120, y2, scalar, scalar);
-
-  angle1 += 2;
-  angle2 += 3;
-}
-
-void rotor() {
-  fill(255, 204, 0);
-  float rh = 300;
-  
-  rotorAngle += (delta / 1000.0) * (rpm / 60.0) * 2 * PI;
-  rotateZ(rotorAngle);
-  
-  drawCylinder(5, 10, rh);
-
+class Rotor { 
+  float rh;
+  float radius;
   int spokes = 4;
-  pushMatrix();
-  translate(0, 0, rh /2.0);
-  rotateY(PI/2.0);
-  arms(spokes, rh/3.0);
-  struts(spokes, rh/3.0, rh, false);
-  struts(spokes, rh/6.0, rh, true);
-  popMatrix();
+  float rotorAngle = 0.0;
+  int numDepths = 3;
+  float angleDelta;
+  boolean ledPoints = false; // use points instead of 3d boxes for LED positions
+  float density = 30.0/100.0; // 30 LEDs per metre
+  int totalLEDs = 0;
   
-  pushMatrix();
-  translate(0, 0, -rh /2.0);
-  rotateY(PI/2.0);
-  arms(spokes, rh/3.0);
-  popMatrix();
+  // Coords are stored as radius/spoke/[start, end]
+  PVector[][][] spokeCoords;
+  float[] strutLengths;
+  color[][] ledColors;
   
-}
-
-void arms(int spokes, float spokeLength) {
-  stroke(100);
-  for (int i = 0; i < spokes; i++) {
-    pushMatrix();
-    rotateX(i* (2*PI/spokes));
-    translate(0, 0, spokeLength /2.0);
-    drawCylinder(5, 4, spokeLength);
-    popMatrix(); 
+  Rotor (float _h, float _r) {
+    rh = _h;
+    radius = _r; 
+    angleDelta = (PI*2/spokes);
+    spokeCoords = new PVector[numDepths][spokes][2];
+    ledColors = new color[numDepths][spokes];
+    strutLengths = new float[numDepths];
+    generateStruts();
   }
-}
-
-void struts(int spokes, float spokeLength, float rh, boolean reverse) {
-  stroke(255);
-  pushMatrix();
-  rotateY(PI/2.0);
-  int numDots = 30;
-  for (int i = 0; i < spokes; i++) {
-    int j = i;
-    if (reverse) { j--; } else { j++; };
-    if (j >= spokes) j = 0;
-    if (j < 0) j = spokes - 1;
-    
-    float ai = i * (PI*2/spokes);
-    float aj = j * (PI*2/spokes);
-    
-    float x1 = sin(ai)*spokeLength;
-    float y1 = cos(ai)*spokeLength;
-    float x2 = sin(aj)*spokeLength;
-    float y2 = cos(aj)*spokeLength;
-    
-    line( x1, y1, 0,
-          x2, y2, rh);
-          
-    //float d0 = dist(x1, y1, 0.0, x2, y2, rh);
-    for (j = 0; j < numDots; j++) {
-      float a = (float(j) / numDots);
-      pushMatrix(); 
-      translate(
-           x1 * (1 - a) + x2 * (a),
-           y1 * (1 - a) + y2 * (a),
-           rh * (a)
-           );
-           box(2);
-      
-      popMatrix();
+  
+  void printStruts() {
+    for (int depth=0; depth < numDepths; depth++) {
+        print(strutLengths[depth]);
+        print(" * ");
+        println(spokes);
     }
   }
-  popMatrix();
-}
+  
+  void generateStruts() {
+    float ai, aj;
+    
+    for (int depth=0; depth < numDepths; depth++) {
+      boolean reverse = false;
+      if (depth % 2 != 0) { reverse = true; }
+      float spokeLength = (numDepths - depth)/float(numDepths) * radius;
+      
+      for (int j, i = 0; i < spokes; i++) {
+        j = i;
+        if (reverse) {
+          j--;
+          if (j < 0) j = spokes - 1; 
+        } else {
+          j++;
+          if (j >= spokes) j = 0;
+        };
+        ai = i * angleDelta;
+        aj = j * angleDelta;
+        
+        float x1 = sin(ai) * spokeLength;
+        float y1 = cos(ai) * spokeLength;
+        float x2 = sin(aj) * spokeLength;
+        float y2 = cos(aj) * spokeLength;
+        
+        PVector startV = new PVector(x1, y1, 0);
+        PVector endV = new PVector(x2, y2, rh);
+        spokeCoords[depth][i][0] = startV;
+        spokeCoords[depth][i][1] = endV;
+        
+        float d0 = dist(startV.x, startV.y, startV.z,
+                      endV.x, endV.y, endV.z);
+        strutLengths[depth] = d0;
+        
+        ledColors[depth][i] = color(
+             x1/spokeLength * 50 + y1/spokeLength * 50,
+             float(depth)/numDepths * 80,
+             float(depth)/numDepths * 80); 
+        float numDots = d0 * density;
+        totalLEDs += numDots;
+        
+      }
+    }  
+  }
+  
+  void colorUpdate(float angle) {
+    float ai, aj;
+    
+    for (int depth=0; depth < numDepths; depth++) {
+      boolean reverse = false;
+      if (depth % 2 != 0) { reverse = true; }
+      float spokeLength = (numDepths - depth)/float(numDepths) * radius;
+      
+      for (int j, i = 0; i < spokes; i++) {
+        j = i;
+        if (reverse) {
+          j--;
+          if (j < 0) j = spokes - 1; 
+        } else {
+          j++;
+          if (j >= spokes) j = 0;
+        };
+        ai = i * angleDelta;
+        aj = j * angleDelta;
+        
+        float x1 = sin(ai) * spokeLength;
+        float y1 = cos(ai) * spokeLength;
+        float x2 = sin(aj) * spokeLength;
+        float y2 = cos(aj) * spokeLength;
+        PVector startV = new PVector(x1, y1, 0);
+        PVector endV = new PVector(x2, y2, rh);
+        float d0 = dist(startV.x, startV.y, startV.z,
+                      endV.x, endV.y, endV.z);
+        strutLengths[depth] = d0;
+        
+        ledColors[depth][i] = color(
+             ((millis()/1000*2*PI) * ai % (2*PI))/ (2*PI) * 100,
+             float(depth)/numDepths * 80,
+             80);
+      }
+    }  
+  }  
+  
+  
+  void update() {
+    
+    rotorAngle += (delta / 1000.0) * (rpm / 60.0) * 2 * PI;
+    colorUpdate(rotorAngle);
+    rotateZ(rotorAngle);
+    
+    fill(15, 204, 80);
+    drawCylinder(5, 10, rh);
+
+    pushMatrix();
+    translate(0, 0, rh /2.0);
+    rotateY(PI/2.0);
+    
+    
+    arms(spokes, radius);
+    struts(spokes, 0, rh, false);
+    struts(spokes, 1, rh, true);
+    struts(spokes, 2, rh, false);
+    popMatrix();
+    
+    pushMatrix();
+    translate(0, 0, -rh /2.0);
+    rotateY(PI/2.0);
+    arms(spokes, rh/3.0);
+    popMatrix();
+  }
+  
+  void drawCylinder(int sides, float r, float h)
+  {
+      float angle = 360 / sides;
+      float halfHeight = h / 2;
+      // draw top shape
+      beginShape();
+      for (int i = 0; i < sides; i++) {
+          float x = cos( radians( i * angle ) ) * r;
+          float y = sin( radians( i * angle ) ) * r;
+          vertex( x, y, -halfHeight );
+          normal( 0, 0, 1); 
+      }
+      endShape(CLOSE);
+      // draw bottom shape
+      beginShape();
+      for (int i = 0; i < sides; i++) {
+          float x = cos( radians( i * angle ) ) * r;
+          float y = sin( radians( i * angle ) ) * r;
+          vertex( x, y, halfHeight );
+          normal( 0, 0, -1); 
+      }
+      endShape(CLOSE);
+      
+      // draw body
+      beginShape(TRIANGLE_STRIP);
+      for (int i = 0; i < sides + 1; i++) {
+          float x = cos( radians( i * angle ) ) * r;
+          float y = sin( radians( i * angle ) ) * r;
+          vertex( x, y, halfHeight);
+          normal( 1, 0, 0);
+          vertex( x, y, -halfHeight);
+          normal( 0, 1, 0);    
+      }
+      endShape(CLOSE);
+  }
+  
+  void arms(int spokes, float spokeLength) {
+    stroke(15, 204, 60);
+    fill(15, 204, 80);
+    for (int i = 0; i < spokes; i++) {
+      pushMatrix();
+      rotateX(i* (2*PI/spokes));
+      translate(0, 0, spokeLength /2.0);
+      drawCylinder(5, 4, spokeLength);
+      popMatrix(); 
+    }
+  }
+  
+  void struts(int spokes, int depth, float rh, boolean reverse) {
+    noStroke();
+    pushMatrix();
+    rotateY(PI/2.0);
+    
+    for (int j, i = 0; i < spokes; i++) {      
+      PVector spokeStart = spokeCoords[depth][i][0];
+      PVector spokeEnd = spokeCoords[depth][i][1];
+      
+      line( spokeStart.x, spokeStart.y, spokeStart.z,
+            spokeEnd.x, spokeEnd.y, spokeEnd.z);
+      
+      float d0 = dist(spokeStart.x, spokeStart.y, spokeStart.z,
+                      spokeEnd.x, spokeEnd.y, spokeEnd.z);
+      
+      float numDots = d0 * density;
+      float a;
+      for (j = 0; j < numDots; j++) {
+        a = (float(j) / numDots);
+        if (ledPoints) {
+        point(spokeStart.x * (1 - a) + spokeEnd.x * (a),
+              spokeStart.y * (1 - a) + spokeEnd.y * (a),
+              spokeStart.z * (1 - a) + spokeEnd.z * (a));
+        } else {
+        pushMatrix(); 
+        fill(ledColors[depth][i]);
+        translate(
+             spokeStart.x * (1 - a) + spokeEnd.x * (a),
+             spokeStart.y * (1 - a) + spokeEnd.y * (a),
+             spokeStart.z * (1 - a) + spokeEnd.z * (a)
+             );
+             box(2);
+        popMatrix();
+        }
+      }
+    }
+    popMatrix();
+  }
+} 
+
+
 
 
 
