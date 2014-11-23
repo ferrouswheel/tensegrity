@@ -3,7 +3,7 @@ import gifAnimation.*;
 float cameraRotateX = -PI/2.0;
 float cameraRotateY = 0.0;
 
-float rpm = 2;
+float rpm = 70;
 float lastFrame = millis();
 float delta = 1.0;
 boolean doExport = false;
