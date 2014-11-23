@@ -3,7 +3,7 @@ import gifAnimation.*;
 float cameraRotateX = -PI/2.0;
 float cameraRotateY = 0.0;
 
-float rpm = 90;
+float rpm = 2;
 float lastFrame = millis();
 float delta = 1.0;
 boolean doExport = false;
@@ -78,6 +78,7 @@ class Rotor {
   boolean ledPoints = false; // use points instead of 3d boxes for LED positions
   float density = 30.0/100.0; // 30 LEDs per metre
   int totalLEDs = 0;
+  boolean curvedStrut = true;
   
   // Coords are stored as radius/spoke/[start, end]
   PVector[][][] spokeCoords;
@@ -88,7 +89,7 @@ class Rotor {
     rh = _h;
     radius = _r; 
     angleDelta = (PI*2/spokes);
-    spokeCoords = new PVector[numDepths][spokes][2];
+    spokeCoords = new PVector[numDepths][spokes][];
     ledColors = new color[numDepths][spokes];
     strutLengths = new float[numDepths];
     generateStruts();
@@ -102,49 +103,104 @@ class Rotor {
     }
   }
   
-  void generateStruts() {
+  PVector[] getPointsOnHelix(int numPoints, int i, int depth, float spokeRadius, boolean reverse) {
+    int j = i;
     float ai, aj;
+    j = i;
+    if (reverse) {
+      j--;
+      //if (j < 0) j = spokes - 1; 
+    } else {
+      j++;
+      //if (j >= spokes) j = 0;
+    };
+    ai = i * angleDelta;
+    aj = j * angleDelta;
+    float agap = aj-ai;
     
-    for (int depth=0; depth < numDepths; depth++) {
-      boolean reverse = false;
-      if (depth % 2 != 0) { reverse = true; }
-      float spokeLength = (numDepths - depth)/float(numDepths) * radius;
+    PVector[] returnVal = new PVector[numPoints];
+    
+    for (int k = 0; k < numPoints; k++) {
+      float ak = ai + (agap/(numPoints-1) * k);
+      float x = sin(ak) * spokeRadius;
+      float y = cos(ak) * spokeRadius;
+      float z = 0 + (k * (rh / (numPoints - 1)));
       
+      returnVal[k] = new PVector(x, y, z);
+    }
+    
+    return returnVal;
+  }
+  
+  PVector[] getStartAndEnd(int i, int depth, float spokeRadius, boolean reverse) {
+    return getPointsOnHelix(2, i, depth, spokeRadius, reverse);
+    
+  }
+  
+  float generateCurvedStrut(int i, int depth, float spokeRadius, boolean reverse) {
+    PVector[] startEnd = getStartAndEnd(i, depth, spokeRadius, reverse);
+    PVector startV = startEnd[0];
+    PVector endV = startEnd[1];
+    
+    // distance of helical shortest path around cylinder is actually the hypotenuse
+    // of a right angle triangle when the cylinder is unrolled.
+    // base of triangle is diameter*pi/spokes
+    // height is height from top/bottom
+    float triangleBase = spokeRadius * 2 * PI / spokes;
+    
+    float d0 = sqrt(triangleBase*triangleBase + rh*rh);
+    int numDots = int(d0 * density);
+    totalLEDs += numDots;
+    
+    spokeCoords[depth][i] = getPointsOnHelix(numDots, i, depth, spokeRadius, reverse);
+    
+    return d0;
+  }
+  
+  float generateStraightStrut(int i, int depth, float spokeRadius, boolean reverse) {
+    PVector[] startEnd = getStartAndEnd(i, depth, spokeRadius, reverse);
+    PVector startV = startEnd[0];
+    PVector endV = startEnd[1];
+    
+    float d0 = dist(startV.x, startV.y, startV.z,
+                  endV.x, endV.y, endV.z);
+    int numDots = int(d0 * density);
+    totalLEDs += numDots;
+    
+    spokeCoords[depth][i] = new PVector[numDots];
+    
+    float a;
+    for (int j = 0; j < numDots; j++) {
+        a = (float(j) / numDots);
+        spokeCoords[depth][i][j] = new PVector(startV.x * (1 - a) + endV.x * (a),
+              startV.y * (1 - a) + endV.y * (a),
+              startV.z * (1 - a) + endV.z * (a));
+        
+    }
+    
+    return d0;
+  }
+  
+  void generateStrutsForDepth(int depth) {
+    boolean reverse = false;
+    if (depth % 2 != 0) { reverse = true; }
+    float spokeRadius = (numDepths - depth)/float(numDepths) * radius;
+    
+    if (curvedStrut) {
       for (int j, i = 0; i < spokes; i++) {
-        j = i;
-        if (reverse) {
-          j--;
-          if (j < 0) j = spokes - 1; 
-        } else {
-          j++;
-          if (j >= spokes) j = 0;
-        };
-        ai = i * angleDelta;
-        aj = j * angleDelta;
-        
-        float x1 = sin(ai) * spokeLength;
-        float y1 = cos(ai) * spokeLength;
-        float x2 = sin(aj) * spokeLength;
-        float y2 = cos(aj) * spokeLength;
-        
-        PVector startV = new PVector(x1, y1, 0);
-        PVector endV = new PVector(x2, y2, rh);
-        spokeCoords[depth][i][0] = startV;
-        spokeCoords[depth][i][1] = endV;
-        
-        float d0 = dist(startV.x, startV.y, startV.z,
-                      endV.x, endV.y, endV.z);
-        strutLengths[depth] = d0;
-        
-        ledColors[depth][i] = color(
-             x1/spokeLength * 50 + y1/spokeLength * 50,
-             float(depth)/numDepths * 80,
-             float(depth)/numDepths * 80); 
-        float numDots = d0 * density;
-        totalLEDs += numDots;
-        
+        strutLengths[depth] = generateCurvedStrut(i, depth, spokeRadius, reverse);
       }
-    }  
+    } else {
+      for (int j, i = 0; i < spokes; i++) {
+        strutLengths[depth] = generateStraightStrut(i, depth, spokeRadius, reverse);
+      }
+    }
+  }
+  
+  void generateStruts() {
+    for (int depth=0; depth < numDepths; depth++) {
+      generateStrutsForDepth(depth);
+    }
   }
   
   void colorUpdate(float angle) {
@@ -153,7 +209,6 @@ class Rotor {
     for (int depth=0; depth < numDepths; depth++) {
       boolean reverse = false;
       if (depth % 2 != 0) { reverse = true; }
-      float spokeLength = (numDepths - depth)/float(numDepths) * radius;
       
       for (int j, i = 0; i < spokes; i++) {
         j = i;
@@ -166,16 +221,6 @@ class Rotor {
         };
         ai = i * angleDelta;
         aj = j * angleDelta;
-        
-        float x1 = sin(ai) * spokeLength;
-        float y1 = cos(ai) * spokeLength;
-        float x2 = sin(aj) * spokeLength;
-        float y2 = cos(aj) * spokeLength;
-        PVector startV = new PVector(x1, y1, 0);
-        PVector endV = new PVector(x2, y2, rh);
-        float d0 = dist(startV.x, startV.y, startV.z,
-                      endV.x, endV.y, endV.z);
-        strutLengths[depth] = d0;
         
         ledColors[depth][i] = color(
              ((millis()/1000*2*PI) * ai % (2*PI))/ (2*PI) * 100,
@@ -198,7 +243,6 @@ class Rotor {
     pushMatrix();
     translate(0, 0, rh /2.0);
     rotateY(PI/2.0);
-    
     
     arms(spokes, radius);
     struts(spokes, 0, rh, false);
@@ -266,36 +310,20 @@ class Rotor {
     pushMatrix();
     rotateY(PI/2.0);
     
-    for (int j, i = 0; i < spokes; i++) {      
-      PVector spokeStart = spokeCoords[depth][i][0];
-      PVector spokeEnd = spokeCoords[depth][i][1];
-      
-      line( spokeStart.x, spokeStart.y, spokeStart.z,
-            spokeEnd.x, spokeEnd.y, spokeEnd.z);
-      
-      float d0 = dist(spokeStart.x, spokeStart.y, spokeStart.z,
-                      spokeEnd.x, spokeEnd.y, spokeEnd.z);
-      
-      float numDots = d0 * density;
-      float a;
-      for (j = 0; j < numDots; j++) {
-        a = (float(j) / numDots);
+    for (int j, i = 0; i < spokes; i++) {
+      for (j = 0; j < spokeCoords[depth][i].length; j++) {
+        PVector p = spokeCoords[depth][i][j];
         if (ledPoints) {
-        point(spokeStart.x * (1 - a) + spokeEnd.x * (a),
-              spokeStart.y * (1 - a) + spokeEnd.y * (a),
-              spokeStart.z * (1 - a) + spokeEnd.z * (a));
+          point(p.x, p.y, p.z);
         } else {
-        pushMatrix(); 
-        fill(ledColors[depth][i]);
-        translate(
-             spokeStart.x * (1 - a) + spokeEnd.x * (a),
-             spokeStart.y * (1 - a) + spokeEnd.y * (a),
-             spokeStart.z * (1 - a) + spokeEnd.z * (a)
-             );
-             box(2);
-        popMatrix();
+          pushMatrix(); 
+          fill(ledColors[depth][i]);
+          translate(p.x, p.y, p.z);
+          box(2);
+          popMatrix();
         }
       }
+      
     }
     popMatrix();
   }
