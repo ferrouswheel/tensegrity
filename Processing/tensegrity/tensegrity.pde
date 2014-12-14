@@ -11,42 +11,6 @@ GifMaker gifExport;
 float fr = 30;
 Rotor rotor;
 
-/*
-
-Need to output two config files for layout:
-1. a fadecandy server config with a devices section like:
-
-
-"devices": [
-{
-  "type": "fadecandy",
-  "serial": "RRTNNVHBZRCPWRYD",
-  "map": [
-    [ 1, 0, 0, 45 ],
-    [ 1, 45, 64, 45 ],
-    [ 2, 0, 128, 46 ],
-    [ 2, 46, 192, 46 ],
-    [ 3, , 182, 98 ],
-    [ 4, 0, 270, 102 ]
-  ]
-},
-...
-]
-
-2. A open pixel control pixel layout file. With format like:
-
-[
-  {"point": [0.0000, 1.0000, 0.0000]},
-  {"point": [0.1253, 0.9921, 0.0000]},
-  {"point": [0.2487, 0.9686, 0.0000]},
-  {"point": [0.3681, 0.9298, 0.0000]},
-  {"point": [0.4818, 0.8763, 0.0000]},
-  {"point": [0.5878, 0.8090, 0.0000]},
-  {"point": [0.6845, 0.7290, 0.0000]}
-]
-
-*/
-
 void setup() 
 {
   size(500, 500, P3D); 
@@ -60,8 +24,13 @@ void setup()
   println("LEDs = " + rotor.totalLEDs);
   println("Struth lengths = ");
   rotor.printStruts();
-  
-  rotor.saveFCLayout("fc_config.json");
+
+  /*
+  Need to output two config files for layout:
+  1. a fadecandy server config with a devices section like:
+  2. A open pixel control pixel layout file.
+  */  
+  rotor.saveFCLayout("fc_config");
   rotor.saveOPCLayout("opc");
   
   if (doExport) {
@@ -145,13 +114,14 @@ class Rotor {
   }
   
   void saveOPCLayout(String fn) {
-    // Write opc layouts, one for each radius
+    /* Write opc layouts, one for each radius:
 
-    /* [
-  {"point": [0.0000, 1.0000, 0.0000]},
-  {"point": [0.1253, 0.9921, 0.0000]},
-  ...
-    ]*/
+    [
+     {"point": [0.0000, 1.0000, 0.0000]},
+     {"point": [0.1253, 0.9921, 0.0000]},
+     ...
+    ]
+    */
     
     for (int depth = 0; depth < numDepths; depth++) {
       PrintWriter output;
@@ -174,30 +144,84 @@ class Rotor {
         }
       }
       output.println("]");
-      output.flush();  // Writes the remaining data to the file
-      output.close();  // Finishes the file
+      output.flush();
+      output.close();
     }
   
   
   }
   
   void saveFCLayout(String fn) {
-     /*"devices": [
-{
-  "type": "fadecandy",
-  "serial": "RRTNNVHBZRCPWRYD",
-  "map": [
-    [ 1, 0, 0, 45 ],
-    [ 1, 45, 64, 45 ],
-    [ 2, 0, 128, 46 ],
-    [ 2, 46, 192, 46 ],
-    [ 3, , 182, 98 ],
-    [ 4, 0, 270, 102 ]
-  ]
-},
-...
-]
-*/
+    /* Write fadecandy server config with mappings from
+    OPC channels to fadecandy boards.
+    
+    "devices": [
+    {
+      "type": "fadecandy",
+      "serial": "RRTNNVHBZRCPWRYD",
+      "map": [
+        [ 1, 0, 0, 45 ],
+        [ 1, 45, 64, 45 ],
+        [ 2, 0, 128, 46 ],
+        [ 2, 46, 192, 46 ],
+        [ 3, , 182, 98 ],
+        [ 4, 0, 270, 102 ]
+      ]
+    },
+    ...
+    ]
+    */
+    PrintWriter output;
+    // Create a new file in the sketch directory
+    output = createWriter(fn + ".json");
+    output.println("{\n" + 
+    "\"listen\": [\"127.0.0.1\", 7890],\n" +
+    "\"verbose\": true,\n" + 
+    "\n" +
+    "\"color\": {\n" +
+    "   \"gamma\": 2.5, \n" +
+    "   \"whitepoint\": [0.98, 1.0, 1.0]\n" +
+    "},\n");
+    output.println("\"devices\": [");
+    
+    // There are 4 fadecandies, each FC listens to all 4 channels (one for each
+    // radius and the axle). Each fadecandy is responsible for two spokes, and are
+    // at the top or bottom.
+    int chans = int(numDepths);
+    
+    println("chans! " + chans);
+    
+    int[] opc_led_count = new int[chans];
+    for (int chan=0; chan < chans; chan++) {
+      opc_led_count[chan] = 0;
+    }
+    
+    for (int fc=0; fc < spokes; fc++) {
+      /*boolean latter_spoke = false;
+      boolean top = true;
+      if (fc % (spokes/2)) latter_spoke = true;
+      if (fc > (spokes/2)) top = false;*/
+      output.println("{\n  \"type\": \"fadecandy\",");
+      output.println("  \"serial\": \"REPLACEME\",");
+      output.println("  \"map\": [");
+      int fc_port = 0;
+      for (int chan=0; chan < chans; chan++) {
+        int ledCount = spokeCoords[chan][0].length / 2;
+        output.println("    [ " + chan + ", " + opc_led_count[chan] + ", " + (fc_port * 64) + ", " + ledCount + "]," );
+        fc_port += 1;
+        opc_led_count[chan] += ledCount;
+        
+        ledCount = spokeCoords[chan][0].length / 2;
+        output.println("    [ " + chan + ", " + opc_led_count[chan] + ", " + (fc_port * 64) + ", " + ledCount + "]," );
+        fc_port += 1;
+        opc_led_count[chan] += ledCount;
+      }
+      output.println("  ]\n},");
+    }
+    
+    output.println("]");
+    output.flush();
+    output.close();
   }
   
   PVector[] getPointsOnHelix(int numPoints, int i, int depth, float spokeRadius, boolean reverse) {
