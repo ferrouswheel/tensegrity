@@ -152,22 +152,24 @@ class Rotor {
   {"point": [0.1253, 0.9921, 0.0000]},
   ...
     ]*/
+    
     for (int depth = 0; depth < numDepths; depth++) {
       PrintWriter output;
       // Create a new file in the sketch directory
       output = createWriter(fn + "_layout_" + depth + ".json");
       output.println("[");
       for (int spoke = 0; spoke < spokes; spoke++) {
+        
         for (int i = 0; i < spokeCoords[depth][spoke].length; i++) {
           PVector p = spokeCoords[depth][spoke][i];
-          output.print("{\"point\": [");
-          output.print(p.x + ", ");
-          output.print(p.y + ", ");
-          output.print(p.z + ", ");
-          if (i < (spokeCoords[depth][spoke].length - 1)) {
-            output.println("]},");
-          } else {
+          output.print("  {\"point\": [");
+          output.print(nf(p.x/100.0, 1, 2) + ", ");
+          output.print(nf(p.y/100.0, 1, 2) + ", ");
+          output.print(nf(p.z/100.0, 1, 2));
+          if (spoke == (spokes - 1) && i == (spokeCoords[depth][spoke].length - 1)) {
             output.println("]}");
+          } else {
+            output.println("]},");
           }
         }
       }
