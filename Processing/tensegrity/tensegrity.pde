@@ -11,17 +11,58 @@ GifMaker gifExport;
 float fr = 30;
 Rotor rotor;
 
+/*
+
+Need to output two config files for layout:
+1. a fadecandy server config with a devices section like:
+
+
+"devices": [
+{
+  "type": "fadecandy",
+  "serial": "RRTNNVHBZRCPWRYD",
+  "map": [
+    [ 1, 0, 0, 45 ],
+    [ 1, 45, 64, 45 ],
+    [ 2, 0, 128, 46 ],
+    [ 2, 46, 192, 46 ],
+    [ 3, , 182, 98 ],
+    [ 4, 0, 270, 102 ]
+  ]
+},
+...
+]
+
+2. A open pixel control pixel layout file. With format like:
+
+[
+  {"point": [0.0000, 1.0000, 0.0000]},
+  {"point": [0.1253, 0.9921, 0.0000]},
+  {"point": [0.2487, 0.9686, 0.0000]},
+  {"point": [0.3681, 0.9298, 0.0000]},
+  {"point": [0.4818, 0.8763, 0.0000]},
+  {"point": [0.5878, 0.8090, 0.0000]},
+  {"point": [0.6845, 0.7290, 0.0000]}
+]
+
+*/
+
 void setup() 
 {
   size(500, 500, P3D); 
   background(0);
   //noStroke();
   colorMode(HSB, 100);
+   
+
   rotor = new Rotor(300, 100);
   rectMode(CENTER);
   println("LEDs = " + rotor.totalLEDs);
   println("Struth lengths = ");
   rotor.printStruts();
+  
+  rotor.saveFCLayout("fc_config.json");
+  rotor.saveOPCLayout("opc");
   
   if (doExport) {
     frameRate(fr);
@@ -101,6 +142,60 @@ class Rotor {
         print(" * ");
         println(spokes);
     }
+  }
+  
+  void saveOPCLayout(String fn) {
+    // Write opc layouts, one for each radius
+
+    /* [
+  {"point": [0.0000, 1.0000, 0.0000]},
+  {"point": [0.1253, 0.9921, 0.0000]},
+  ...
+    ]*/
+    for (int depth = 0; depth < numDepths; depth++) {
+      PrintWriter output;
+      // Create a new file in the sketch directory
+      output = createWriter(fn + "_layout_" + depth + ".json");
+      output.println("[");
+      for (int spoke = 0; spoke < spokes; spoke++) {
+        for (int i = 0; i < spokeCoords[depth][spoke].length; i++) {
+          PVector p = spokeCoords[depth][spoke][i];
+          output.print("{\"point\": [");
+          output.print(p.x + ", ");
+          output.print(p.y + ", ");
+          output.print(p.z + ", ");
+          if (i < (spokeCoords[depth][spoke].length - 1)) {
+            output.println("]},");
+          } else {
+            output.println("]}");
+          }
+        }
+      }
+      output.println("]");
+      output.flush();  // Writes the remaining data to the file
+      output.close();  // Finishes the file
+    }
+  
+  
+  }
+  
+  void saveFCLayout(String fn) {
+     /*"devices": [
+{
+  "type": "fadecandy",
+  "serial": "RRTNNVHBZRCPWRYD",
+  "map": [
+    [ 1, 0, 0, 45 ],
+    [ 1, 45, 64, 45 ],
+    [ 2, 0, 128, 46 ],
+    [ 2, 46, 192, 46 ],
+    [ 3, , 182, 98 ],
+    [ 4, 0, 270, 102 ]
+  ]
+},
+...
+]
+*/
   }
   
   PVector[] getPointsOnHelix(int numPoints, int i, int depth, float spokeRadius, boolean reverse) {
