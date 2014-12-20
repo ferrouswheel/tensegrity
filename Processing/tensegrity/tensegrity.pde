@@ -267,9 +267,11 @@ class Rotor {
     // of a right angle triangle when the cylinder is unrolled.
     // base of triangle is diameter*pi/spokes
     // height is height from top/bottom
-    float triangleBase = spokeRadius * 2 * PI / spokes;
+    
+    float triangleBase = spokeRadius * float(2) * PI / float(spokes);
     
     float d0 = sqrt(triangleBase*triangleBase + rh*rh);
+    println("diameter=" + (spokeRadius*(2*PI)) + " rh=" + rh + " spokeRadius=" + spokeRadius + " triangleBase=" + triangleBase + " d0=" + d0);
     int numDots = int(d0 * density);
     totalLEDs += numDots;
     
