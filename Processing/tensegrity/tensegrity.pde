@@ -83,7 +83,7 @@ class Rotor {
   float radius;
   int spokes = 4;
   float rotorAngle = 0.0;
-  int numDepths = 3;
+  int numDepths = 4;
   float angleDelta;
   boolean ledPoints = false; // use points instead of 3d boxes for LED positions
   float density = 30.0/100.0; // 30 LEDs per metre
@@ -228,7 +228,9 @@ class Rotor {
     int j = i;
     float ai, aj;
     j = i;
-    if (reverse) {
+    if (depth == (numDepths-1)){
+      j=i;
+    } else if (reverse) {
       j--;
       //if (j < 0) j = spokes - 1; 
     } else {
@@ -307,7 +309,13 @@ class Rotor {
   void generateStrutsForDepth(int depth) {
     boolean reverse = false;
     if (depth % 2 != 0) { reverse = true; }
-    float spokeRadius = (numDepths - depth)/float(numDepths) * radius;
+    float spokeRadius;
+    
+    if (depth == (numDepths - 1)) {
+      spokeRadius = 6.0f;
+    } else {
+      spokeRadius = ((numDepths - 1) - depth)/float((numDepths - 1)) * radius;
+    }
     
     if (curvedStrut) {
       for (int j, i = 0; i < spokes; i++) {
@@ -361,16 +369,16 @@ class Rotor {
     rotateZ(rotorAngle);
     
     fill(15, 204, 80);
-    drawCylinder(5, 10, rh);
+    drawCylinder(5, 5, rh);
 
     pushMatrix();
     translate(0, 0, rh /2.0);
     rotateY(PI/2.0);
     
     arms(spokes, radius);
-    struts(spokes, 0, rh, false);
-    struts(spokes, 1, rh, true);
-    struts(spokes, 2, rh, false);
+    for (int depth=0; depth < numDepths; depth++) {
+      struts(spokes, depth, rh, depth % 2 == 1);
+    }
     popMatrix();
     
     pushMatrix();
