@@ -1,4 +1,5 @@
 import gifAnimation.*;
+import java.nio.ByteBuffer;
 
 float cameraRotateX = -PI/2.0;
 float cameraRotateY = 0.0;
@@ -11,6 +12,31 @@ GifMaker gifExport;
 float fr = 30;
 Rotor rotor;
 
+// Learning Processing
+// Daniel Shiffman
+// http://www.learningprocessing.com
+
+// Example 19-1: Simple therapy server
+
+// Import the net libraries
+import processing.net.*;
+
+// Declare a server
+Server server;
+
+// Used to indicate a new message has arrived
+float newMessageColor = 255;
+PFont f;
+String incomingMessage = "";
+
+// The serverEvent function is called whenever a new client connects.
+void serverEvent(Server server, Client client) {
+  incomingMessage = "A new client has connected: " + client.ip();
+  println(incomingMessage);
+  // Reset newMessageColor to black
+  newMessageColor = 0;
+}
+
 void setup() 
 {
   size(500, 500, P3D); 
@@ -18,6 +44,8 @@ void setup()
   //noStroke();
   colorMode(HSB, 100);
    
+  // Create the Server on port 5204
+  server = new Server(this, 5204);
 
   rotor = new Rotor(300, 100);
   rectMode(CENTER);
@@ -67,6 +95,42 @@ void draw()
   
   rotor.update();
   
+  // If a client is available, we will find out
+  // If there is no client, it will be"null"
+  Client client = server.available();
+  // We should only proceed if the client is not null
+  if (client!= null) {
+    
+    // Receive the message
+    // The message is read using readString().
+    byte[] header = new byte[4];
+    int byte_count = client.readBytes(header);
+    println("byte count was " + byte_count);
+    byte channel = header[0];
+    byte command = header[1];
+    int data_l2 = ((int)header[2] << 8) | ((int)header[3] & 0xFF);
+    
+    println("channel: " + channel);
+    println("command: " + command);
+    println("data_l2 was " + data_l2);
+    byte[] led_data = new byte[data_l2];
+    byte_count = client.readBytes(led_data);
+    // TODO: problem is that readBytes won't necessarily fill up the led_data buffer.
+    // we have to manually handle it. urgh
+    println("byte count was " + byte_count);
+    int led_count = data_l2/3;
+    for (int i = 0; i < led_count; i++) {
+      int offset = i * 3;
+      byte r = led_data[offset];
+      byte g = led_data[offset + 1];
+      byte b = led_data[offset + 2];
+      
+      color c = color((int)r, (int)g, (int)b);
+      //println("color for led " + i + " is " + c);
+    }
+    
+      
+  }
   
   if (doExport) {
     gifExport.setDelay((int)delta);
@@ -386,6 +450,8 @@ class Rotor {
     rotateY(PI/2.0);
     arms(spokes, rh/3.0);
     popMatrix();
+    
+    
   }
   
   void drawCylinder(int sides, float r, float h)
