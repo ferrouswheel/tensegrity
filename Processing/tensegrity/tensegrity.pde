@@ -12,12 +12,6 @@ GifMaker gifExport;
 float fr = 30;
 Rotor rotor;
 
-// Learning Processing
-// Daniel Shiffman
-// http://www.learningprocessing.com
-
-// Example 19-1: Simple therapy server
-
 // Import the net libraries
 import processing.net.*;
 
@@ -79,6 +73,57 @@ void exit() {
   super.exit();
 }
 
+void handle_opc_message(Client client) {
+  // Receive the message
+  // The message is read using readString().
+  byte[] header = new byte[4];
+  int byte_count = client.readBytes(header);
+  //println("byte count was " + byte_count);
+  byte channel = header[0];
+  byte command = header[1];
+  int data_l2 = ((int)header[2] << 8) | ((int)header[3] & 0xFF);
+  
+  //println("channel: " + channel);
+  //println("command: " + command);
+  //println("data_l2 was " + data_l2);
+  int data_count = 0;
+  byte[] led_data = new byte[data_l2];
+  while (data_count < data_l2) {
+    byte[] buffer = new byte[data_l2 - data_count];
+    byte_count = client.readBytes(buffer);
+    for (int i = 0; i < byte_count; i++) {
+      led_data[data_count + i] = buffer[i];
+    }
+    data_count += byte_count;
+  }
+  
+  //println("byte count was " + byte_count);
+  int led_count = data_l2/3;
+  int spoke_i = 0;
+  int spoke_offset = 0;
+  for (int i = 0; i < led_count; i++) {
+    int offset = i * 3;
+    int r = led_data[offset] & 0xFF;
+    int g = led_data[offset + 1] & 0xFF;
+    int b = led_data[offset + 2] & 0xFF;
+  
+    
+    if (i >= (spoke_offset + rotor.ledColors[channel][spoke_i].length)) {
+      //println("i " + i + " spoke_i " + spoke_i + " spoke_offset " + spoke_offset + " ritor color length " + rotor.ledColors[channel][spoke_i].length);
+      spoke_offset += rotor.ledColors[channel][spoke_i].length;
+      spoke_i += 1;
+      if (spoke_i >= rotor.ledColors[channel].length) {
+         i = led_count;
+         continue;
+      }
+    }
+    
+    color c = color(r, g, b);
+    rotor.ledColors[channel][spoke_i][i - spoke_offset] = c;
+    //println("channel " + channel + " spoke_i " + spoke_i + " i " + i + " spoke_offset " + spoke_offset);
+  }
+}
+
 void draw() 
 {   
   background(0);
@@ -95,41 +140,9 @@ void draw()
   
   rotor.update();
   
-  // If a client is available, we will find out
-  // If there is no client, it will be"null"
   Client client = server.available();
-  // We should only proceed if the client is not null
-  if (client!= null) {
-    
-    // Receive the message
-    // The message is read using readString().
-    byte[] header = new byte[4];
-    int byte_count = client.readBytes(header);
-    println("byte count was " + byte_count);
-    byte channel = header[0];
-    byte command = header[1];
-    int data_l2 = ((int)header[2] << 8) | ((int)header[3] & 0xFF);
-    
-    println("channel: " + channel);
-    println("command: " + command);
-    println("data_l2 was " + data_l2);
-    byte[] led_data = new byte[data_l2];
-    byte_count = client.readBytes(led_data);
-    // TODO: problem is that readBytes won't necessarily fill up the led_data buffer.
-    // we have to manually handle it. urgh
-    println("byte count was " + byte_count);
-    int led_count = data_l2/3;
-    for (int i = 0; i < led_count; i++) {
-      int offset = i * 3;
-      byte r = led_data[offset];
-      byte g = led_data[offset + 1];
-      byte b = led_data[offset + 2];
-      
-      color c = color((int)r, (int)g, (int)b);
-      //println("color for led " + i + " is " + c);
-    }
-    
-      
+  if (client != null) {
+    handle_opc_message(client);
   }
   
   if (doExport) {
@@ -157,14 +170,14 @@ class Rotor {
   // Coords are stored as radius/spoke/[start, end]
   PVector[][][] spokeCoords;
   float[] strutLengths;
-  color[][] ledColors;
+  color[][][] ledColors;
   
   Rotor (float _h, float _r) {
     rh = _h;
     radius = _r; 
     angleDelta = (PI*2/spokes);
     spokeCoords = new PVector[numDepths][spokes][];
-    ledColors = new color[numDepths][spokes];
+    ledColors = new color[numDepths][spokes][];
     strutLengths = new float[numDepths];
     generateStruts();
   }
@@ -342,6 +355,7 @@ class Rotor {
     totalLEDs += numDots;
     
     spokeCoords[depth][i] = getPointsOnHelix(numDots, i, depth, spokeRadius, reverse);
+    ledColors[depth][i] = new color[spokeCoords[depth][i].length];
     
     return d0;
   }
@@ -357,6 +371,7 @@ class Rotor {
     totalLEDs += numDots;
     
     spokeCoords[depth][i] = new PVector[numDots];
+    ledColors[depth][i] = new color[spokeCoords[depth][i].length];
     
     float a;
     for (int j = 0; j < numDots; j++) {
@@ -417,10 +432,12 @@ class Rotor {
         ai = i * angleDelta;
         aj = j * angleDelta;
         
-        ledColors[depth][i] = color(
+        for (int k = 0; k < ledColors[depth][i].length; k++) {
+          ledColors[depth][i][k] = color(
              ((millis()/1000*2*PI) * ai % (2*PI))/ (2*PI) * 100,
              float(depth)/numDepths * 80,
-             80);
+             (k * millis()/500.0) % 255);
+        }
       }
     }  
   }  
@@ -429,7 +446,7 @@ class Rotor {
   void update() {
     
     rotorAngle += (delta / 1000.0) * (rpm / 60.0) * 2 * PI;
-    colorUpdate(rotorAngle);
+    //colorUpdate(rotorAngle);
     rotateZ(rotorAngle);
     
     fill(15, 204, 80);
@@ -514,7 +531,7 @@ class Rotor {
           point(p.x, p.y, p.z);
         } else {
           pushMatrix(); 
-          fill(ledColors[depth][i]);
+          fill(ledColors[depth][i][j]);
           translate(p.x, p.y, p.z);
           box(2);
           popMatrix();
