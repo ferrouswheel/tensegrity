@@ -36,10 +36,11 @@ void setup()
   size(500, 500, P3D); 
   background(0);
   //noStroke();
-  colorMode(HSB, 100);
+  //colorMode(HSB, 100);
+  colorMode(RGB, 255);
    
-  // Create the Server on port 5204
-  server = new Server(this, 5204);
+  // Create the Server on port 7890
+  server = new Server(this, 7890);
 
   rotor = new Rotor(300, 100);
   rectMode(CENTER);
@@ -78,6 +79,15 @@ void handle_opc_message(Client client) {
   // The message is read using readString().
   byte[] header = new byte[4];
   int byte_count = client.readBytes(header);
+  while (byte_count < 4) {
+    byte[] buffer = new byte[4 - byte_count];
+    int inc_count = client.readBytes(buffer);
+    for (int i = 0; i < inc_count; i++) {
+      header[byte_count + i] = buffer[i];
+    }
+    byte_count += inc_count;
+    
+  }
   //println("byte count was " + byte_count);
   byte channel = header[0];
   byte command = header[1];
@@ -97,7 +107,7 @@ void handle_opc_message(Client client) {
     data_count += byte_count;
   }
   
-  //println("byte count was " + byte_count);
+  //println("data count was " + data_count);
   int led_count = data_l2/3;
   int spoke_i = 0;
   int spoke_offset = 0;
@@ -109,7 +119,7 @@ void handle_opc_message(Client client) {
   
     
     if (i >= (spoke_offset + rotor.ledColors[channel][spoke_i].length)) {
-      //println("i " + i + " spoke_i " + spoke_i + " spoke_offset " + spoke_offset + " ritor color length " + rotor.ledColors[channel][spoke_i].length);
+      //println("i " + i + " spoke_i " + spoke_i + " spoke_offset " + spoke_offset + " rotor color length " + rotor.ledColors[channel][spoke_i].length);
       spoke_offset += rotor.ledColors[channel][spoke_i].length;
       spoke_i += 1;
       if (spoke_i >= rotor.ledColors[channel].length) {
@@ -120,7 +130,7 @@ void handle_opc_message(Client client) {
     
     color c = color(r, g, b);
     rotor.ledColors[channel][spoke_i][i - spoke_offset] = c;
-    //println("channel " + channel + " spoke_i " + spoke_i + " i " + i + " spoke_offset " + spoke_offset);
+    //println("channel " + channel + " spoke_i " + spoke_i + " i " + i + " spoke_offset " + spoke_offset + " rgb " + r + " " + g + " " + b);
   }
 }
 
@@ -141,8 +151,10 @@ void draw()
   rotor.update();
   
   Client client = server.available();
-  if (client != null) {
+  while (client != null) {
+    rotor.opc = true;
     handle_opc_message(client);
+    client = server.available();
   }
   
   if (doExport) {
@@ -166,6 +178,7 @@ class Rotor {
   float density = 30.0/100.0; // 30 LEDs per metre
   int totalLEDs = 0;
   boolean curvedStrut = true;
+  boolean opc = false;
   
   // Coords are stored as radius/spoke/[start, end]
   PVector[][][] spokeCoords;
@@ -350,7 +363,7 @@ class Rotor {
     float triangleBase = spokeRadius * float(2) * PI / float(spokes);
     
     float d0 = sqrt(triangleBase*triangleBase + rh*rh);
-    println("diameter=" + (spokeRadius*(2*PI)) + " rh=" + rh + " spokeRadius=" + spokeRadius + " triangleBase=" + triangleBase + " d0=" + d0);
+    println("circumference=" + (spokeRadius*(2*PI)) + " rh=" + rh + " spokeRadius=" + spokeRadius + " triangleBase=" + triangleBase + " d0=" + d0);
     int numDots = int(d0 * density);
     totalLEDs += numDots;
     
@@ -397,11 +410,72 @@ class Rotor {
     }
     
     if (curvedStrut) {
-      for (int j, i = 0; i < spokes; i++) {
+      for (int i = 0; i < spokes; i++) {
         strutLengths[depth] = generateCurvedStrut(i, depth, spokeRadius, reverse);
+        // Bunch of crap to work out arc of curves from start/end/middle, to transform them into
+        // metal bits
+        /*PVector a = PVector.sub(spokeCoords[depth][0][spokeCoords[depth][0].length - 1],
+            spokeCoords[depth][0][0]);
+        float a_dist = a.mag();
+        
+        float sqR = (spokeRadius * spokeRadius);
+        float c = sqrt(sqR * 2.0);
+        float x = sqrt(sqR - ((c/2.0) * (c/2.0)));
+        float curveHeight = spokeRadius-x;
+        
+        println("a_dist: " + a_dist + " curve height: " + curveHeight);
+        
+        
+        
+        println("orig: " + spokeCoords[depth][0][0] + ", " + spokeCoords[depth][0][spokeCoords[depth][0].length - 1] );*/
+        
+        /*PVector[] translated = new PVector[spokeCoords[depth][0].length];
+        for (int j = 0; j < spokeCoords[depth][0].length; j++) {
+          translated[j] = PVector.sub(spokeCoords[depth][0][j],
+            spokeCoords[depth][0][0]);
+        }*/
+        /*
+        println("[" + translated[0] + ", ");
+        println(translated[translated.length / 2] + ", ");
+        println(translated[translated.length - 1] + "]");
+        */
+        //PVector a = translated[translated.length - 1];
+//        GG = @(A,B) [ dot(A,B) -norm(cross(A,B)) 0;\
+//              norm(cross(A,B)) dot(A,B)  0;\
+//              0              0           1];
+//
+//        FFi = @(A,B) [ A (B-dot(A,B)*A)/norm(B-dot(A,B)*A) cross(B,A) ];
+//
+//        UU = @(Fi,G) Fi*G*inv(Fi);
+//        a.normalize();
+//        PVector cp = a.cross(b);
+//        float dot = a.dot(b);
+//        float cp_length = cp.normalize();
+//        
+//        float[][] G;
+//        vx = new float[3][3];       
+//        G[0][0] = dot;
+//        G[0][1] = -cp_length;
+//        G[0][2] = 0.0f;
+//        G[1][0] = cp_length;
+//        G[1][1] = dot;
+//        G[1][2] = 0.0f;
+//        G[2][0] = 0.0f;
+//        G[2][1] = 0.0f;
+//        G[2][2] = 1;
+//        
+//        float[][] G;
+//        
+//        
+//        float[][] I = {
+//        {1.0f, 0.0f, 0.0f},
+//        {0.0f, 1.0f, 0.0f},
+//        {0.0f, 0.0f, 1.0f}
+//        };
+        
       }
     } else {
-      for (int j, i = 0; i < spokes; i++) {
+      for (int i = 0; i < spokes; i++) {
         strutLengths[depth] = generateStraightStrut(i, depth, spokeRadius, reverse);
       }
     }
@@ -415,6 +489,7 @@ class Rotor {
   
   void colorUpdate(float angle) {
     float ai, aj;
+    colorMode(HSB, 100);
     
     for (int depth=0; depth < numDepths; depth++) {
       boolean reverse = false;
@@ -433,23 +508,25 @@ class Rotor {
         aj = j * angleDelta;
         
         for (int k = 0; k < ledColors[depth][i].length; k++) {
+          
           ledColors[depth][i][k] = color(
              ((millis()/1000*2*PI) * ai % (2*PI))/ (2*PI) * 100,
              float(depth)/numDepths * 80,
-             (k * millis()/500.0) % 255);
+             (k * millis()/500.0) % 100);
         }
       }
-    }  
+    }
+    colorMode(RGB, 255);  
   }  
   
   
   void update() {
     
     rotorAngle += (delta / 1000.0) * (rpm / 60.0) * 2 * PI;
-    //colorUpdate(rotorAngle);
+    if (!opc) colorUpdate(rotorAngle);
     rotateZ(rotorAngle);
     
-    fill(15, 204, 80);
+    
     drawCylinder(5, 5, rh);
 
     pushMatrix();
@@ -475,6 +552,8 @@ class Rotor {
   {
       float angle = 360 / sides;
       float halfHeight = h / 2;
+      fill(80, 80, 80);
+      noStroke(); //255,255,102);
       // draw top shape
       beginShape();
       for (int i = 0; i < sides; i++) {
@@ -508,8 +587,6 @@ class Rotor {
   }
   
   void arms(int spokes, float spokeLength) {
-    stroke(15, 204, 60);
-    fill(15, 204, 80);
     for (int i = 0; i < spokes; i++) {
       pushMatrix();
       rotateX(i* (2*PI/spokes));
