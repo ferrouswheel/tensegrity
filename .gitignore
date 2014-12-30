@@ -55,3 +55,6 @@ docs/_build/
 # Vim detritus
 *.un~
 *.swp
+
+# build detritus
+*.dSYM
