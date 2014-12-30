@@ -1,0 +1,10 @@
+*.dSYM
+*.exe
+spinhard
+simple
+rings
+rings_2d
+spokes
+dot
+mixer
+particle_trail
