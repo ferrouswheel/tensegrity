@@ -6,6 +6,8 @@
 class TEffect : public Effect
 {
 public:
+    int channel;
+    TEffect(int _channel) : channel(_channel) {};
 
     virtual void nextColor();
 

@@ -7,12 +7,16 @@
 #include "tensegrity_effect.h"
 #include "lib/effect_runner.h"
 #include "lib/noise.h"
+ 
+Effect** effects;
 
 class MyEffect : public TEffect
 {
 public:
-    MyEffect()
-        : cycle (0), hue(0.2) {}
+    MyEffect(int channel)
+        : TEffect(channel), cycle (0), hue(0.2){}
+
+    virtual ~MyEffect() {}
 
     float cycle;
     float hue;
@@ -41,36 +45,41 @@ public:
     }
 };
 
-class ProcessingEffect : public Effect
+class ProcessingEffect : public TEffect
 {
 public:
-    ProcessingEffect()
-        : cycle (0), hue(0.2) {}
+    ProcessingEffect(int channel)
+        : TEffect(channel), hue(0){}
 
-    float cycle;
-    float hue;
+    int hue;
+    float t;
 
     virtual void beginFrame(const FrameInfo &f)
     {
-        const float speed = 10.0;
-        cycle = fmodf(cycle + f.timeDelta * speed, 2 * M_PI);
+        TEffect::beginFrame(f);
+        t += f.timeDelta;
     }
 
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
     {
-        float distance = len(p.point);
-        float wave = sinf(3.0 * distance - cycle) + noise3(p.point);
-        hsv2rgb(rgb, hue, 0.3, wave);
+        int hues[][4] = {
+            { 0, 60, 120, 280 },
+            { 210, 240, 250, 260 }
+        };
+        const float speed = 10.0;
+        int spoke = spokeNumberForIndex(p.index);
+        //float distance = len(p.point);
+        float mahHue = hues[hue][channel] / 360.0f;
+        float v = fmodf((t * speed + p.index), 50.0f) / 50.0f;
+        hsv2rgb(rgb, mahHue, 0.5, v);
     }
 
     virtual void nextColor() {
-        hue += 0.1f;
-        if (hue >= 1.0f) {
-            hue = 0.0f;
-        }
-
+        hue += 1;
+        if (hue > 1) hue = 0;
     }
 };
+
 
 void argumentUsage()
 {
@@ -177,6 +186,21 @@ void nonblock(int state)
  
 }
 
+void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
+
+    Effect *oldEffect = effects[channel];
+
+    if (strcmp(effectName, "falling")) {
+        effects[channel] = new MyEffect(channel);
+    }
+    else {
+        effects[channel] = new ProcessingEffect(channel);
+    }
+    
+    er[channel]->setEffect(effects[channel]);
+    delete oldEffect;
+}
+
 void checkController(std::vector<EffectRunner*> er) {
     /*
      * This currently just listens for keypresses on the console.
@@ -184,6 +208,7 @@ void checkController(std::vector<EffectRunner*> er) {
      *
      */
     char c;
+    static int effect = 0;
     std::vector<EffectRunner*>::const_iterator it;
 
     int i=kbhit();
@@ -210,6 +235,18 @@ void checkController(std::vector<EffectRunner*> er) {
                 e->nextColor();
             }
             fprintf(stderr, "\nchanged color palette\n");
+        } else if (c == 'e') {
+            // Change effect
+            int j=0;
+            effect++;
+            for (it = er.begin(); it != er.end(); ++it, ++j) {
+                if (effect%2 == 0) {
+                    changeEffect(j, "falling", er);
+                } else {
+                    changeEffect(j, "original", er);
+                }
+            }
+            fprintf(stderr, "\nchanged effect\n");
         } else {
             fprintf(stderr, "\nunknown command %c. \n", c);
         }
@@ -221,12 +258,15 @@ int main(int argc, char **argv)
     std::vector<EffectRunner*> effect_runners;
     const int layers = 4;
     char buffer[1000];
- 
-    MyEffect e[layers];
+
+    effects = new Effect* [layers];
 
     for (int i = 0; i < layers; i++) {
+        Effect *e = new MyEffect(i);
+        effects[i] = e;
+
         EffectRunner* r = new EffectRunner();
-        r->setEffect(&e[i]);
+        r->setEffect(e);
         r->setMaxFrameRate(50);
 
         r->setChannel(i);

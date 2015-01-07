@@ -54,3 +54,4 @@ docs/_build/
 # Vim detritus
 *.un~
 *.swp
+*.swo

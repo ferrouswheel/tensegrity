@@ -77,6 +77,8 @@ public:
     // This can print parameters out to the console.
     virtual void debug(const DebugInfo& d);
 
+    virtual ~Effect() {}; // Virtual destructor.
+
     // Information about one LED pixel
     class PixelInfo {
     public:
