@@ -77,7 +77,6 @@ public:
     // This can print parameters out to the console.
     virtual void debug(const DebugInfo& d);
 
-
     // Information about one LED pixel
     class PixelInfo {
     public:

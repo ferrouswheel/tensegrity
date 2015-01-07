@@ -4,17 +4,51 @@
 #include <math.h>
 #include <termios.h>
 #include "lib/color.h"
-#include "lib/effect.h"
+#include "tensegrity_effect.h"
 #include "lib/effect_runner.h"
 #include "lib/noise.h"
 
-class MyEffect : public Effect
+class MyEffect : public TEffect
 {
 public:
     MyEffect()
-        : cycle (0) {}
+        : cycle (0), hue(0.2) {}
 
     float cycle;
+    float hue;
+
+    virtual void beginFrame(const FrameInfo &f)
+    {
+        TEffect::beginFrame(f);
+        const float speed = 10.0;
+        cycle = fmodf(cycle + f.timeDelta * speed, 2 * M_PI);
+    }
+
+    virtual void shader(Vec3& rgb, const PixelInfo &p) const
+    {
+        float distance = len(p.point);
+        float wave = sinf(3.0 * distance - cycle) + noise3(p.point);
+        int spoke = spokeNumberForIndex(p.index);
+        hsv2rgb(rgb, hue, 1.0 - (0.2 * (spoke+1)), wave);
+    }
+
+    virtual void nextColor() {
+        hue += 0.1f;
+        if (hue >= 1.0f) {
+            hue = 0.0f;
+        }
+
+    }
+};
+
+class ProcessingEffect : public Effect
+{
+public:
+    ProcessingEffect()
+        : cycle (0), hue(0.2) {}
+
+    float cycle;
+    float hue;
 
     virtual void beginFrame(const FrameInfo &f)
     {
@@ -26,13 +60,21 @@ public:
     {
         float distance = len(p.point);
         float wave = sinf(3.0 * distance - cycle) + noise3(p.point);
-        hsv2rgb(rgb, 0.2, 0.3, wave);
+        hsv2rgb(rgb, hue, 0.3, wave);
+    }
+
+    virtual void nextColor() {
+        hue += 0.1f;
+        if (hue >= 1.0f) {
+            hue = 0.0f;
+        }
+
     }
 };
 
 void argumentUsage()
 {
-    fprintf(stderr, "[-v] [-fps LIMIT] [-speed MULTIPLIER] [-layout FILE.json] [-server HOST[:port]]");
+    fprintf(stderr, "[-v] [-fps LIMIT] [-speed MULTIPLIER] [-server HOST[:port]]");
 }
 
 void usage(const char *name)
@@ -136,13 +178,19 @@ void nonblock(int state)
 }
 
 void checkController(std::vector<EffectRunner*> er) {
+    /*
+     * This currently just listens for keypresses on the console.
+     * Eventually it should read data from the raspberry pi gpio pins.
+     *
+     */
     char c;
+    std::vector<EffectRunner*>::const_iterator it;
+
     int i=kbhit();
     if (i!=0)
     {
         c=fgetc(stdin);
         if (c == 's') {
-            std::vector<EffectRunner*>::const_iterator it;
             float speed = 0.0f;
 
             for (it = er.begin(); it != er.end(); ++it) {
@@ -155,6 +203,13 @@ void checkController(std::vector<EffectRunner*> er) {
                 (*it)->setSpeed(speed);
             }
             fprintf(stderr, "\nspeed set to %.2f. \n", speed);
+        } else if (c == 'c') {
+            // Change colour palette
+            for (it = er.begin(); it != er.end(); ++it) {
+                TEffect* e = (TEffect*) (*it)->getEffect();
+                e->nextColor();
+            }
+            fprintf(stderr, "\nchanged color palette\n");
         } else {
             fprintf(stderr, "\nunknown command %c. \n", c);
         }
@@ -167,13 +222,11 @@ int main(int argc, char **argv)
     const int layers = 4;
     char buffer[1000];
  
-    nonblock(NB_ENABLE);
-
-    MyEffect e;
+    MyEffect e[layers];
 
     for (int i = 0; i < layers; i++) {
         EffectRunner* r = new EffectRunner();
-        r->setEffect(&e);
+        r->setEffect(&e[i]);
         r->setMaxFrameRate(50);
 
         r->setChannel(i);
@@ -184,6 +237,7 @@ int main(int argc, char **argv)
     }
     parseArguments(argc, argv, effect_runners);
 
+    nonblock(NB_ENABLE);
     while (true) {
         for (int i=0 ; i < layers; i++) {
             effect_runners[i]->doFrame();
