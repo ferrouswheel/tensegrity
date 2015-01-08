@@ -8,6 +8,7 @@
 #include "lib/effect_runner.h"
 #include "lib/noise.h"
  
+#define NUM_LAYERS 4
 Effect** effects;
 
 class MyEffect : public TEffect
@@ -45,10 +46,65 @@ public:
     }
 };
 
-class ProcessingEffect : public TEffect
+class ProcessingEffect: public TEffect
 {
 public:
     ProcessingEffect(int channel)
+        : TEffect(channel), hue(0){}
+
+    int hue;
+    float t;
+    float M_2PI;
+    float time_divider;
+
+    virtual void beginFrame(const FrameInfo &f)
+    {
+        TEffect::beginFrame(f);
+        t += f.timeDelta;
+
+        M_2PI = 2*M_PI;
+        time_divider = M_2PI;
+            
+    }
+
+    virtual void shader(Vec3& rgb, const PixelInfo &p) const
+    {
+        //const float speed = 10.0;
+        int spoke = spokeNumberForIndex(p.index);
+
+        //int hues[][NUM_LAYERS] = {
+            //{ 0, 60, 120, 280 },
+            //{ 210, 240, 250, 260 }
+        //};
+        //float mahHue = hues[hue][channel] / 360.0f;
+
+        bool reverse = false;
+        if (channel % 2 != 0) { reverse = true; }
+      
+        int i = spoke;
+        float ai = i * angleDelta;
+
+        float k = p.index - strutOffsets[spoke];
+        
+        hsv2rgb(rgb,
+           fmodf((t/time_divider) * ai, M_2PI) / M_2PI,
+           float(channel) / NUM_LAYERS * 0.80f,
+           fmodf(k * t/0.5, 100) / 100.0f
+        );
+    }
+
+    virtual void nextColor() {
+        hue += 1;
+        if (hue > 1) hue = 0;
+    }
+};
+
+
+
+class PythonEffect : public TEffect
+{
+public:
+    PythonEffect(int channel)
         : TEffect(channel), hue(0){}
 
     int hue;
@@ -62,12 +118,11 @@ public:
 
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
     {
-        int hues[][4] = {
+        int hues[][NUM_LAYERS] = {
             { 0, 60, 120, 280 },
             { 210, 240, 250, 260 }
         };
         const float speed = 10.0;
-        int spoke = spokeNumberForIndex(p.index);
         //float distance = len(p.point);
         float mahHue = hues[hue][channel] / 360.0f;
         float v = fmodf((t * speed + p.index), 50.0f) / 50.0f;
@@ -190,10 +245,17 @@ void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*
 
     Effect *oldEffect = effects[channel];
 
-    if (strcmp(effectName, "falling")) {
+    fprintf(stderr, "\neffectName %s\n", effectName);
+    if (strcmp(effectName, "falling") == 0) {
+        fprintf(stderr, "\nchanged effect to MyEffect\n");
         effects[channel] = new MyEffect(channel);
     }
-    else {
+    else if (strcmp(effectName, "python") == 0) {
+        fprintf(stderr, "\nchanged effect to PythonEffect\n");
+        effects[channel] = new PythonEffect(channel);
+    }
+    else if (strcmp(effectName, "processing") == 0) {
+        fprintf(stderr, "\nchanged effect to ProcessingEffect\n");
         effects[channel] = new ProcessingEffect(channel);
     }
     
@@ -238,15 +300,20 @@ void checkController(std::vector<EffectRunner*> er) {
         } else if (c == 'e') {
             // Change effect
             int j=0;
+            int NUM_EFFECTS=3;
             effect++;
+            int e_index = effect % NUM_EFFECTS;
+            fprintf(stderr, "\ne_index is %d\n", e_index);
+            
             for (it = er.begin(); it != er.end(); ++it, ++j) {
-                if (effect%2 == 0) {
+                if (e_index == 0) {
                     changeEffect(j, "falling", er);
-                } else {
-                    changeEffect(j, "original", er);
+                } else if (e_index == 1) {
+                    changeEffect(j, "processing", er);
+                } else if (e_index == 2) {
+                    changeEffect(j, "python", er);
                 }
             }
-            fprintf(stderr, "\nchanged effect\n");
         } else {
             fprintf(stderr, "\nunknown command %c. \n", c);
         }
@@ -256,7 +323,7 @@ void checkController(std::vector<EffectRunner*> er) {
 int main(int argc, char **argv)
 {
     std::vector<EffectRunner*> effect_runners;
-    const int layers = 4;
+    const int layers = NUM_LAYERS;
     char buffer[1000];
 
     effects = new Effect* [layers];

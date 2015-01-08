@@ -490,6 +490,7 @@ class Rotor {
   void colorUpdate(float angle) {
     float ai, aj;
     colorMode(HSB, 100);
+    float t = millis();
     
     for (int depth=0; depth < numDepths; depth++) {
       boolean reverse = false;
@@ -510,9 +511,9 @@ class Rotor {
         for (int k = 0; k < ledColors[depth][i].length; k++) {
           
           ledColors[depth][i][k] = color(
-             ((millis()/1000*2*PI) * ai % (2*PI))/ (2*PI) * 100,
+             (((t/1000*2*PI) * ai) % (2*PI))/ (2*PI) * 100,
              float(depth)/numDepths * 80,
-             (k * millis()/500.0) % 100);
+             (k * t/500.0) % 100);
         }
       }
     }
