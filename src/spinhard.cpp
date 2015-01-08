@@ -9,7 +9,13 @@
 #include "lib/noise.h"
  
 #define NUM_LAYERS 4
+#define NUM_HUES 2
 Effect** effects;
+
+int hues[NUM_HUES][NUM_LAYERS] = {
+    { 0, 60, 120, 280 },
+    { 210, 240, 250, 260 }
+};
 
 class MyEffect : public TEffect
 {
@@ -72,12 +78,6 @@ public:
         //const float speed = 10.0;
         int spoke = spokeNumberForIndex(p.index);
 
-        //int hues[][NUM_LAYERS] = {
-            //{ 0, 60, 120, 280 },
-            //{ 210, 240, 250, 260 }
-        //};
-        //float mahHue = hues[hue][channel] / 360.0f;
-
         bool reverse = false;
         if (channel % 2 != 0) { reverse = true; }
       
@@ -99,7 +99,69 @@ public:
     }
 };
 
+class FireEffect : public TEffect
+{
+public:
+    FireEffect(int channel)
+        : TEffect(channel), hue(0){}
 
+    int hue;
+    float t;
+    float minz, maxz;
+
+    virtual void beginFrame(const FrameInfo &f)
+    {
+        TEffect::beginFrame(f);
+        t += f.timeDelta;
+        minz = f.modelMin[2];
+        maxz = f.modelMax[2];
+    }
+
+    virtual void shader(Vec3& rgb, const PixelInfo &p) const
+    {
+        const float speed = 10.0;
+        //float distance = len(p.point);
+        float mahHue = hues[hue][0] / 360.0f;
+        float height = (p.point[2] - minz) / (maxz - minz);
+        float v = fbm_noise2(height, t, 4);
+        hsv2rgb(rgb, mahHue, v - height, 0.4 + (v * 0.6));
+    }
+
+    virtual void nextColor() {
+        hue += 1;
+        if (hue > 1) hue = 0;
+    }
+};
+
+class PerlinEffect : public TEffect
+{
+public:
+    PerlinEffect(int channel)
+        : TEffect(channel), hue(0){}
+
+    int hue;
+    float t;
+
+    virtual void beginFrame(const FrameInfo &f)
+    {
+        TEffect::beginFrame(f);
+        t += f.timeDelta;
+    }
+
+    virtual void shader(Vec3& rgb, const PixelInfo &p) const
+    {
+        const float speed = 10.0;
+        //float distance = len(p.point);
+        float mahHue = hues[hue][channel] / 360.0f;
+        float v = fbm_noise4(p.point[0], p.point[1], p.point[2], t, 2);
+        hsv2rgb(rgb, mahHue, 0.7, 0.4 + v);
+    }
+
+    virtual void nextColor() {
+        hue += 1;
+        if (hue > 1) hue = 0;
+    }
+};
 
 class PythonEffect : public TEffect
 {
@@ -118,15 +180,11 @@ public:
 
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
     {
-        int hues[][NUM_LAYERS] = {
-            { 0, 60, 120, 280 },
-            { 210, 240, 250, 260 }
-        };
         const float speed = 10.0;
         //float distance = len(p.point);
         float mahHue = hues[hue][channel] / 360.0f;
         float v = fmodf((t * speed + p.index), 50.0f) / 50.0f;
-        hsv2rgb(rgb, mahHue, 0.5, v);
+        hsv2rgb(rgb, mahHue, 0.4, v);
     }
 
     virtual void nextColor() {
@@ -258,6 +316,14 @@ void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*
         fprintf(stderr, "\nchanged effect to ProcessingEffect\n");
         effects[channel] = new ProcessingEffect(channel);
     }
+    else if (strcmp(effectName, "perlin") == 0) {
+        fprintf(stderr, "\nchanged effect to PerlinEffect\n");
+        effects[channel] = new PerlinEffect(channel);
+    }
+    else if (strcmp(effectName, "fire") == 0) {
+        fprintf(stderr, "\nchanged effect to FireEffect\n");
+        effects[channel] = new FireEffect(channel);
+    }
     
     er[channel]->setEffect(effects[channel]);
     delete oldEffect;
@@ -300,7 +366,7 @@ void checkController(std::vector<EffectRunner*> er) {
         } else if (c == 'e') {
             // Change effect
             int j=0;
-            int NUM_EFFECTS=3;
+            int NUM_EFFECTS=5;
             effect++;
             int e_index = effect % NUM_EFFECTS;
             fprintf(stderr, "\ne_index is %d\n", e_index);
@@ -312,6 +378,10 @@ void checkController(std::vector<EffectRunner*> er) {
                     changeEffect(j, "processing", er);
                 } else if (e_index == 2) {
                     changeEffect(j, "python", er);
+                } else if (e_index == 3) {
+                    changeEffect(j, "perlin", er);
+                } else if (e_index == 4) {
+                    changeEffect(j, "fire", er);
                 }
             }
         } else {
