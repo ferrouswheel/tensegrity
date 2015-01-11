@@ -9,12 +9,27 @@
 #include "lib/noise.h"
  
 #define NUM_LAYERS 4
-#define NUM_HUES 2
+#define NUM_HUES 5
 Effect** effects;
 
 int hues[NUM_HUES][NUM_LAYERS] = {
     { 0, 60, 120, 280 },
-    { 210, 240, 250, 260 }
+    { 210, 240, 250, 260 },
+    { 110, 140, 150, 160 },
+    { 0, 20, 350, 320 },
+    { 150, 240, 250, 60 }
+};
+
+bool randomEffects = false;
+
+int NUM_EFFECTS=6;
+const char* effectIndex[] = {
+    "falling",
+    "processing",
+    "python",
+    "perlin",
+    "fire",
+    "reverse"
 };
 
 #define PIV2 (M_PI+M_PI)
@@ -99,17 +114,18 @@ public:
         float ai = i * angleDelta;
 
         float k = p.index - strutOffsets[spoke];
+        float mahHue = hues[hue][channel];
         
         hsv2rgb(rgb,
-           fmodf((t/time_divider) * ai, M_2PI) / M_2PI,
-           float(channel) / NUM_LAYERS * 0.80f,
+           fmodf(mahHue, 360.0f) / 360.0f,
+           (float(channel) / float(NUM_LAYERS)) * 0.50f,
            fmodf(k * t/0.5, 100) / 100.0f
         );
     }
 
     virtual void nextColor() {
         hue += 1;
-        if (hue > 1) hue = 0;
+        if (hue >= NUM_HUES) hue = 0;
     }
 };
 
@@ -143,7 +159,7 @@ public:
 
     virtual void nextColor() {
         hue += 1;
-        if (hue > 1) hue = 0;
+        if (hue >= NUM_HUES) hue = 0;
     }
 };
 
@@ -173,7 +189,7 @@ public:
 
     virtual void nextColor() {
         hue += 1;
-        if (hue > 1) hue = 0;
+        if (hue >= NUM_HUES) hue = 0;
     }
 };
 
@@ -203,7 +219,7 @@ public:
 
     virtual void nextColor() {
         hue += 1;
-        if (hue > 1) hue = 0;
+        if (hue >= NUM_HUES) hue = 0;
     }
 };
 
@@ -244,7 +260,7 @@ public:
 
     virtual void nextColor() {
         hue += 1;
-        if (hue > 1) hue = 0;
+        if (hue >= NUM_HUES) hue = 0;
     }
 };
 
@@ -267,6 +283,11 @@ bool parseArgument(int &i, int &argc, char **argv, std::vector<EffectRunner*> er
 
     if (!strcmp(argv[i], "-v")) {
         for (it = er.begin(); it != er.end(); ++it) { (*it)->setVerbose(true); }
+        return true;
+    }
+
+    if (!strcmp(argv[i], "-random")) {
+        randomEffects = true;
         return true;
     }
 
@@ -354,35 +375,35 @@ void nonblock(int state)
  
 }
 
+Effect* createEffect(const char *effectName, int channel)
+{
+    if (strcmp(effectName, "falling") == 0) {
+        return new MyEffect(channel);
+    }
+    else if (strcmp(effectName, "python") == 0) {
+        return new PythonEffect(channel);
+    }
+    else if (strcmp(effectName, "processing") == 0) {
+        return new ProcessingEffect(channel);
+    }
+    else if (strcmp(effectName, "perlin") == 0) {
+        return new PerlinEffect(channel);
+    }
+    else if (strcmp(effectName, "fire") == 0) {
+        return new FireEffect(channel);
+    }
+    else if (strcmp(effectName, "reverse") == 0) {
+        return new ReverseEffect(channel);
+    }
+    return NULL;
+}
+
 void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
 
     Effect *oldEffect = effects[channel];
 
-    fprintf(stderr, "\neffectName %s\n", effectName);
-    if (strcmp(effectName, "falling") == 0) {
-        fprintf(stderr, "\nchanged effect to MyEffect\n");
-        effects[channel] = new MyEffect(channel);
-    }
-    else if (strcmp(effectName, "python") == 0) {
-        fprintf(stderr, "\nchanged effect to PythonEffect\n");
-        effects[channel] = new PythonEffect(channel);
-    }
-    else if (strcmp(effectName, "processing") == 0) {
-        fprintf(stderr, "\nchanged effect to ProcessingEffect\n");
-        effects[channel] = new ProcessingEffect(channel);
-    }
-    else if (strcmp(effectName, "perlin") == 0) {
-        fprintf(stderr, "\nchanged effect to PerlinEffect\n");
-        effects[channel] = new PerlinEffect(channel);
-    }
-    else if (strcmp(effectName, "fire") == 0) {
-        fprintf(stderr, "\nchanged effect to FireEffect\n");
-        effects[channel] = new FireEffect(channel);
-    }
-    else if (strcmp(effectName, "reverse") == 0) {
-        fprintf(stderr, "\nchanged effect to ReverseEffect\n");
-        effects[channel] = new ReverseEffect(channel);
-    }
+    fprintf(stderr, "\nchange effect to %s\n", effectName);
+    effects[channel] = createEffect(effectName, channel);
     
     er[channel]->setEffect(effects[channel]);
     delete oldEffect;
@@ -425,25 +446,12 @@ void checkController(std::vector<EffectRunner*> er) {
         } else if (c == 'e') {
             // Change effect
             int j=0;
-            int NUM_EFFECTS=6;
             effect++;
             int e_index = effect % NUM_EFFECTS;
             fprintf(stderr, "\ne_index is %d\n", e_index);
             
             for (it = er.begin(); it != er.end(); ++it, ++j) {
-                if (e_index == 0) {
-                    changeEffect(j, "falling", er);
-                } else if (e_index == 1) {
-                    changeEffect(j, "processing", er);
-                } else if (e_index == 2) {
-                    changeEffect(j, "python", er);
-                } else if (e_index == 3) {
-                    changeEffect(j, "perlin", er);
-                } else if (e_index == 4) {
-                    changeEffect(j, "fire", er);
-                } else if (e_index == 5) {
-                    changeEffect(j, "reverse", er);
-                }
+                changeEffect(j, effectIndex[e_index], er);
             }
         } else {
             fprintf(stderr, "\nunknown command %c. \n", c);
