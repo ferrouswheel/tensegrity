@@ -17,6 +17,20 @@ int hues[NUM_HUES][NUM_LAYERS] = {
     { 210, 240, 250, 260 }
 };
 
+#define PIV2 (M_PI+M_PI)
+#define C360 360.0000000000000000000
+
+double difangrad(double x, double y)
+{
+    double arg;
+
+    arg = fmod(y-x, PIV2);
+    if (arg < 0 )  arg  = arg + PIV2;
+    if (arg > M_PI) arg  = arg - PIV2;
+
+    return (-arg);
+}
+
 class MyEffect : public TEffect
 {
 public:
@@ -56,7 +70,7 @@ class ProcessingEffect: public TEffect
 {
 public:
     ProcessingEffect(int channel)
-        : TEffect(channel), hue(0){}
+        : TEffect(channel), hue(0), t(0.0f) {}
 
     int hue;
     float t;
@@ -103,7 +117,7 @@ class FireEffect : public TEffect
 {
 public:
     FireEffect(int channel)
-        : TEffect(channel), hue(0){}
+        : TEffect(channel), hue(0), t(0.0f) {}
 
     int hue;
     float t;
@@ -137,7 +151,7 @@ class PerlinEffect : public TEffect
 {
 public:
     PerlinEffect(int channel)
-        : TEffect(channel), hue(0){}
+        : TEffect(channel), hue(0), t(0.0f) {}
 
     int hue;
     float t;
@@ -167,7 +181,7 @@ class PythonEffect : public TEffect
 {
 public:
     PythonEffect(int channel)
-        : TEffect(channel), hue(0){}
+        : TEffect(channel), hue(0), t(0.0f) {}
 
     int hue;
     float t;
@@ -184,6 +198,47 @@ public:
         //float distance = len(p.point);
         float mahHue = hues[hue][channel] / 360.0f;
         float v = fmodf((t * speed + p.index), 50.0f) / 50.0f;
+        hsv2rgb(rgb, mahHue, 0.4, v);
+    }
+
+    virtual void nextColor() {
+        hue += 1;
+        if (hue > 1) hue = 0;
+    }
+};
+
+class ReverseEffect : public TEffect
+{
+public:
+    ReverseEffect(int channel)
+        : TEffect(channel), hue(0), t(0.0f), revPerSecond(0.0f), currentAngle(0.0f) {}
+
+    int hue;
+    float t;
+    float revPerSecond;
+    float currentAngle;
+
+    virtual void beginFrame(const FrameInfo &f)
+    {
+        revPerSecond = 1.0f;
+        TEffect::beginFrame(f);
+        currentAngle -= (f.timeDelta * ( 2*M_PI * (revPerSecond + 1.0)));
+        if (currentAngle < 0) {
+            currentAngle += M_PI * 2.0f;
+        }
+    }
+
+    virtual void shader(Vec3& rgb, const PixelInfo &p) const
+    {
+        int spoke = spokeNumberForIndex(p.index);
+
+        float spokeAngle = (angleDelta * spoke) - M_PI;
+
+        //float d = currentAngle - spokeAngle;
+        float angleDiff = difangrad(currentAngle - M_PI, spokeAngle); //atan2(fast_sin(d), fast_cos(d));
+        float v = 1.0 - (2*(fabs(angleDiff) / (M_PI)));
+        //fprintf(stderr, "currentAngle %.2f spoke %d angleDiff %.2f v %.2f\n", currentAngle, spoke, angleDiff, v);
+        float mahHue = hues[hue][channel] / 360.0f;
         hsv2rgb(rgb, mahHue, 0.4, v);
     }
 
@@ -324,6 +379,10 @@ void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*
         fprintf(stderr, "\nchanged effect to FireEffect\n");
         effects[channel] = new FireEffect(channel);
     }
+    else if (strcmp(effectName, "reverse") == 0) {
+        fprintf(stderr, "\nchanged effect to ReverseEffect\n");
+        effects[channel] = new ReverseEffect(channel);
+    }
     
     er[channel]->setEffect(effects[channel]);
     delete oldEffect;
@@ -366,7 +425,7 @@ void checkController(std::vector<EffectRunner*> er) {
         } else if (c == 'e') {
             // Change effect
             int j=0;
-            int NUM_EFFECTS=5;
+            int NUM_EFFECTS=6;
             effect++;
             int e_index = effect % NUM_EFFECTS;
             fprintf(stderr, "\ne_index is %d\n", e_index);
@@ -382,6 +441,8 @@ void checkController(std::vector<EffectRunner*> er) {
                     changeEffect(j, "perlin", er);
                 } else if (e_index == 4) {
                     changeEffect(j, "fire", er);
+                } else if (e_index == 5) {
+                    changeEffect(j, "reverse", er);
                 }
             }
         } else {
@@ -399,7 +460,7 @@ int main(int argc, char **argv)
     effects = new Effect* [layers];
 
     for (int i = 0; i < layers; i++) {
-        Effect *e = new MyEffect(i);
+        Effect *e = new ReverseEffect(i);
         effects[i] = e;
 
         EffectRunner* r = new EffectRunner();
