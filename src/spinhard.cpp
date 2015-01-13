@@ -12,7 +12,10 @@
 #include "lib/noise.h"
  
 #define NUM_LAYERS 4
+#define ALL_LAYERS NUM_LAYERS
+
 #define NUM_HUES 5
+
 Effect** effects;
 
 int hues[NUM_HUES][NUM_LAYERS] = {
@@ -281,6 +284,20 @@ void usage(const char *name)
     fprintf(stderr, "\n");
 }
 
+bool changeSpeed(int channel, float speed, std::vector<EffectRunner*> er) {
+    std::vector<EffectRunner*>::const_iterator it;
+    if (speed <= 0.0f) {
+        fprintf(stderr, "Invalid speed\n");
+        return false;
+    }
+    if (channel >= ALL_LAYERS) {
+        for (it = er.begin(); it != er.end(); ++it) { (*it)->setSpeed(speed); }
+    } else {
+        er[channel]->setSpeed(speed);
+    }
+    return true;
+}
+
 bool parseArgument(int &i, int &argc, char **argv, std::vector<EffectRunner*> er)
 {
     std::vector<EffectRunner*>::const_iterator it;
@@ -307,12 +324,7 @@ bool parseArgument(int &i, int &argc, char **argv, std::vector<EffectRunner*> er
 
     if (!strcmp(argv[i], "-speed") && (i+1 < argc)) {
         float speed = atof(argv[++i]);
-        if (speed <= 0) {
-            fprintf(stderr, "Invalid speed\n");
-            return false;
-        }
-        for (it = er.begin(); it != er.end(); ++it) { (*it)->setSpeed(speed); }
-        return true;
+        return changeSpeed(ALL_LAYERS, speed, er);
     }
 
     if (!strcmp(argv[i], "-server") && (i+1 < argc)) {
@@ -402,18 +414,40 @@ Effect* createEffect(const char *effectName, int channel)
     return NULL;
 }
 
-void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
-
+inline void _changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
     Effect *oldEffect = effects[channel];
 
-    fprintf(stderr, "\nchange effect to %s\n", effectName);
     effects[channel] = createEffect(effectName, channel);
-    
     er[channel]->setEffect(effects[channel]);
-    if (oldEffect != NULL) {
-        delete oldEffect;
+
+    if (oldEffect != NULL) { delete oldEffect; }
+}
+
+void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
+    fprintf(stderr, "\nchange effect to %s\n", effectName);
+    if (channel >= ALL_LAYERS) {
+        for (int i = 0; i < NUM_LAYERS; ++i) {
+            _changeEffect(i, effectName, er);
+        }
+    } else {
+        _changeEffect(channel, effectName, er);
     }
 }
+
+bool changeColour(int channel, std::vector<EffectRunner*> er) {
+    std::vector<EffectRunner*>::const_iterator it;
+    if (channel >= ALL_LAYERS) {
+        for (it = er.begin(); it != er.end(); ++it) {
+            TEffect* e = (TEffect*) (*it)->getEffect();
+            e->nextColor();
+        }
+    } else {
+        TEffect* e = (TEffect*) er[channel]->getEffect();
+        e->nextColor();
+    }
+    return true;
+}
+
 
 void checkController(std::vector<EffectRunner*> er) {
     /*
@@ -430,35 +464,24 @@ void checkController(std::vector<EffectRunner*> er) {
     {
         c=fgetc(stdin);
         if (c == 's') {
-            float speed = 0.0f;
+            float speed = er[0]->getSpeed();
 
-            for (it = er.begin(); it != er.end(); ++it) {
-                speed = (*it)->getSpeed();
-                if (speed < 0.1) {
-                    speed = 5.0;
-                } else {
-                    speed *= 0.8;
-                }
-                (*it)->setSpeed(speed);
+            if (speed < 0.1) {
+                speed = 5.0;
+            } else {
+                speed *= 0.8;
             }
+            changeSpeed(ALL_LAYERS, speed, er);
             fprintf(stderr, "\nspeed set to %.2f. \n", speed);
         } else if (c == 'c') {
             // Change colour palette
-            for (it = er.begin(); it != er.end(); ++it) {
-                TEffect* e = (TEffect*) (*it)->getEffect();
-                e->nextColor();
-            }
+            changeColour(ALL_LAYERS, er);
             fprintf(stderr, "\nchanged color palette\n");
         } else if (c == 'e') {
             // Change effect
-            int j=0;
             effect++;
             int e_index = effect % NUM_EFFECTS;
-            fprintf(stderr, "\ne_index is %d\n", e_index);
-            
-            for (it = er.begin(); it != er.end(); ++it, ++j) {
-                changeEffect(j, effectIndex[e_index], er);
-            }
+            changeEffect(ALL_LAYERS, effectIndex[e_index], er);
         } else {
             fprintf(stderr, "\nunknown command %c. \n", c);
         }
@@ -476,33 +499,37 @@ void checkRandom(std::vector<EffectRunner*> er) {
 
     std::vector<EffectRunner*>::const_iterator it;
 
-    fprintf(stderr, "\nrandom effect change... \n");
+    fprintf(stderr, "\nrandom change... \n");
 
-    //int channel = rand() % (NUM_LAYERS + 5);
-    //fprintf(stderr, "\nchange channel %d... \n", channel);
+    // Select which channel we're affecting, with a bias towards all
+    int channel = rand() % (NUM_LAYERS + 5);
+    if (channel >= ALL_LAYERS) {
+        channel = ALL_LAYERS;
+        fprintf(stderr, "\nchange all channels... \n");
+    } else {
+        fprintf(stderr, "\nchange channel %d... \n", channel);
+    }
 
-    int changeType = rand() % 5;
+    enum { EFFECT, COLOUR, SPEED };
+
+    int changeType = rand() % 3;
     float speed = 0.0f;
+    float maxSpeed = 10.0f;
+    int ei;
     switch(changeType) {
-        case 1:
-            fprintf(stderr, "\nchange colour... \n");
-            for (it = er.begin(); it != er.end(); ++it) {
-                TEffect* e = (TEffect*) (*it)->getEffect();
-                e->nextColor();
-            }
-
+        case EFFECT:
+            fprintf(stderr, "\nchange effect... \n");
+            ei = rand() % NUM_EFFECTS;
+            changeEffect(channel, effectIndex[ei], er);
             break;
-        case 2:
+        case COLOUR:
+            fprintf(stderr, "\nchange colour... \n");
+            changeColour(channel, er);
+            break;
+        case SPEED:
             fprintf(stderr, "\nchange speed... \n");
-            for (it = er.begin(); it != er.end(); ++it) {
-                speed = (*it)->getSpeed();
-                if (speed < 0.1) {
-                    speed = 5.0;
-                } else {
-                    speed *= 0.8;
-                }
-                (*it)->setSpeed(speed);
-            }
+            speed = (maxSpeed * rand()) / (float) RAND_MAX;
+            changeSpeed(channel, speed, er);
             break;
         default:
             break;
