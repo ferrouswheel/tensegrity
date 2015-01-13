@@ -3,6 +3,9 @@
 
 #include <math.h>
 #include <termios.h>
+#include <time.h>
+#include <stdlib.h>
+
 #include "lib/color.h"
 #include "tensegrity_effect.h"
 #include "lib/effect_runner.h"
@@ -153,6 +156,7 @@ public:
         //float distance = len(p.point);
         float mahHue = hues[hue][0] / 360.0f;
         float height = (p.point[2] - minz) / (maxz - minz);
+        height += (maxz*channel);
         float v = fbm_noise2(height, t, 4);
         hsv2rgb(rgb, mahHue, v - height, 0.4 + (v * 0.6));
     }
@@ -406,7 +410,9 @@ void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*
     effects[channel] = createEffect(effectName, channel);
     
     er[channel]->setEffect(effects[channel]);
-    delete oldEffect;
+    if (oldEffect != NULL) {
+        delete oldEffect;
+    }
 }
 
 void checkController(std::vector<EffectRunner*> er) {
@@ -459,20 +465,64 @@ void checkController(std::vector<EffectRunner*> er) {
     }
 }
 
+void checkRandom(std::vector<EffectRunner*> er) {
+    float chanceOfChange = 0.01f;
+
+    float r = rand() / (float) RAND_MAX;
+
+    if (r > chanceOfChange) {
+        return;
+    }
+
+    std::vector<EffectRunner*>::const_iterator it;
+
+    fprintf(stderr, "\nrandom effect change... \n");
+
+    //int channel = rand() % (NUM_LAYERS + 5);
+    //fprintf(stderr, "\nchange channel %d... \n", channel);
+
+    int changeType = rand() % 5;
+    float speed = 0.0f;
+    switch(changeType) {
+        case 1:
+            fprintf(stderr, "\nchange colour... \n");
+            for (it = er.begin(); it != er.end(); ++it) {
+                TEffect* e = (TEffect*) (*it)->getEffect();
+                e->nextColor();
+            }
+
+            break;
+        case 2:
+            fprintf(stderr, "\nchange speed... \n");
+            for (it = er.begin(); it != er.end(); ++it) {
+                speed = (*it)->getSpeed();
+                if (speed < 0.1) {
+                    speed = 5.0;
+                } else {
+                    speed *= 0.8;
+                }
+                (*it)->setSpeed(speed);
+            }
+            break;
+        default:
+            break;
+    }
+
+}
+
 int main(int argc, char **argv)
 {
     std::vector<EffectRunner*> effect_runners;
     const int layers = NUM_LAYERS;
     char buffer[1000];
 
+    srand(time(NULL));
+
     effects = new Effect* [layers];
 
     for (int i = 0; i < layers; i++) {
-        Effect *e = new ReverseEffect(i);
-        effects[i] = e;
-
         EffectRunner* r = new EffectRunner();
-        r->setEffect(e);
+        effects[i] = NULL;
         r->setMaxFrameRate(50);
 
         r->setChannel(i);
@@ -481,12 +531,22 @@ int main(int argc, char **argv)
         r->setLayout(buffer);
         effect_runners.push_back(r);
     }
+
+    int j = 0;
+    std::vector<EffectRunner*>::const_iterator it;
+    for (it = effect_runners.begin(); it != effect_runners.end(); ++it, ++j) {
+        changeEffect(j, effectIndex[0], effect_runners);
+    }
+
     parseArguments(argc, argv, effect_runners);
 
     nonblock(NB_ENABLE);
     while (true) {
         for (int i=0 ; i < layers; i++) {
             effect_runners[i]->doFrame();
+        }
+        if (randomEffects) {
+            checkRandom(effect_runners);
         }
         checkController(effect_runners);
     }
