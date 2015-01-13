@@ -14,7 +14,7 @@
 #define NUM_LAYERS 4
 #define ALL_LAYERS NUM_LAYERS
 
-#define NUM_HUES 5
+#define NUM_HUES 7
 
 Effect** effects;
 
@@ -23,7 +23,9 @@ int hues[NUM_HUES][NUM_LAYERS] = {
     { 210, 240, 250, 260 },
     { 110, 140, 150, 160 },
     { 0, 20, 350, 320 },
-    { 150, 240, 250, 60 }
+    { 150, 240, 250, 60 },
+    { 197, 227, 167, 197 },
+    { 300, 330, 151, 120 }
 };
 
 bool randomEffects = false;
@@ -514,12 +516,12 @@ void checkRandom(std::vector<EffectRunner*> er) {
 
     int changeType = rand() % 3;
     float speed = 0.0f;
-    float maxSpeed = 10.0f;
+    float maxSpeed = 6.0f;
     int ei;
     switch(changeType) {
         case EFFECT:
-            fprintf(stderr, "\nchange effect... \n");
             ei = rand() % NUM_EFFECTS;
+            fprintf(stderr, "\nchange effect to %s... \n", effectIndex[ei]);
             changeEffect(channel, effectIndex[ei], er);
             break;
         case COLOUR:
@@ -527,8 +529,8 @@ void checkRandom(std::vector<EffectRunner*> er) {
             changeColour(channel, er);
             break;
         case SPEED:
-            fprintf(stderr, "\nchange speed... \n");
             speed = (maxSpeed * rand()) / (float) RAND_MAX;
+            fprintf(stderr, "\nchange speed to %.2f... \n", speed);
             changeSpeed(channel, speed, er);
             break;
         default:
