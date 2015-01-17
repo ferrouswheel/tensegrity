@@ -4,7 +4,7 @@ PROGRAMS = simple rings spokes dot particle_trail mixer
 CFLAGS = -O3 -ffast-math -fno-rtti
 
 # Standard libraries
-LFLAGS = -lm -lstdc++ -lpthread -lncurses
+LFLAGS = -lm -lstdc++ -lpthread
 
 # Debugging
 CFLAGS += -g -Wall

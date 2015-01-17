@@ -569,17 +569,22 @@ int main(int argc, char **argv)
 
     parseArguments(argc, argv, effect_runners);
 
-    nonblock(NB_ENABLE);
+    if (!randomEffects) {
+        nonblock(NB_ENABLE);
+    }
     while (true) {
         for (int i=0 ; i < layers; i++) {
             effect_runners[i]->doFrame();
         }
         if (randomEffects) {
             checkRandom(effect_runners);
+        } else {
+            checkController(effect_runners);
         }
-        checkController(effect_runners);
     }
-    nonblock(NB_DISABLE);
+    if (!randomEffects) {
+        nonblock(NB_DISABLE);
+    }
 
     return 0;
 }
