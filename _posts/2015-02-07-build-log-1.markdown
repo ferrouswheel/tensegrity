@@ -47,99 +47,76 @@ Also, when your art is large, it’s much harder to play around with ideas than 
 
 I used [Processing](https://processing.org) to create a simple 3d representation of the main parts.
 
-{% include image.html url='Screenshot%202014-11-23%2017.18.15.png' description='A configuration with curved struts for the LEDs' %}
+{% include image.html url='simulation_straight_and_curved.png' description='Straight or curved struts for the LEDs?' %}
 
-The image on the right is the design we went with, but the image on the left is the original concept (and has more connection to [the concept of Tensegrity](http://en.wikipedia.org/wiki/Tensegrity) and comes back to a really old evolutionary spring/physics experiment I made called [biobox](https://github.com/ferrouswheel/biobox))
+The image on the right is the design we went with, but the image on the left is the original concept (and has more connection to [the concept of Tensegrity](http://en.wikipedia.org/wiki/Tensegrity), it also reflects a structure that my really old evolutionary spring/physics experiment [biobox](https://github.com/ferrouswheel/biobox) would often stabilise)
 
-So, with this simulation, I managed several things:
+This simulation allowed several things:
 
-- It allowed me to work out the measurements of the curved struts between the arms, useful for cutting and bending the metal piping we ended up using. Similarly, it meant I could order the right amount of LED tape needed.
-- It could dump out layouts for each channel of [openpixelcontrol](http://openpixelcontrol.org/) (OPC) data.
-- It could dump a fadecandy server config for mapping opc data to the physical layout of fadecandies and strips (see later)
-- Most awesomely, it has really basic OPC server so that I could start writing effects directly and all I would have to do to move to using the effects on finished physical product is change the IP address the pattern generator was sending data to.
+- working out the measurements of the curved struts between the arms. These measurements were necessary for cutting and bending the metal piping we ended up using. Similarly, it meant I could order the right amount of LED tape needed.
+- creating pixel layout files for each channel of [openpixelcontrol](http://openpixelcontrol.org/) (OPC) data.
+- creating fadecandy server config file for mapping OPC data to the physical layout of fadecandies and strips (see later).
+- Most awesomely, it has really basic OPC server so that I could start writing effects that directly controlled the simulation. All I would have to do to move to using the effects on the finished physical product is change the IP address the pattern generator was sending data to!
 
-Of course, this was the finished product and it took me several refactorings to get to this point.
+Of course, all this functionality was only in the finished product and it took me several refactorings and iterations to get to this point.
 
-Side benefit: we are discussing the idea of letting people (sepcifically design or comp sci students) submit patterns to us before an event so that they can see their light pattern on the final product. with a simulation, they can test it out before submission.
+A side benefit of creating this simulation is that we are discussing the idea of letting people (specifically design or computer science students) submit patterns to us before an event so that they can see their light pattern on the final product. With a simulation, they can test the patterns out before submission.
 
 ## Metal structure
 
-Once the structure was confirmed, Patrick had a plan to turn it into metal. We picked up a bunch of tubing from Wellington Steel and Tube:
+Once the structure was confirmed, Patrick had a plan to turn it into metal.
 
-<img src="Build%20log%201.resources/Picture.jpeg" height="2448" width="1836"/><br/>
+{% include image.html url='Picture.jpeg' description='We picked up a bunch of tubing from Wellington Steel and Tube.' %}
 
-Patrick’s vision for the structure, with the additional constraint that it had be transportable, was to have a centre axle made of scaffold pipe with coupling nuts welded to it. Four arms at the top and bottom would then have the same size thread spot welded in place. This meant each arm could be screwed into place.
-<img src="Build%20log%201.resources/2014-12-26%2011.55.56.jpg" height="2448" width="3264"/><br/>
-Chopping metal to length with a drop saw and grinding plate. I have a new appreciation of having the right tools for the right job after envisaging hacksawing metal pipes.
+Patrick’s vision for the structure, with the additional constraint that it had be transportable, was to have a centre axle made of scaffold pipe with coupling nuts welded to it. Four arms at the top and bottom would then have matching size threading spot-welded into them. This meant each arm could be screwed into place and their distance adjusted to match any measurement errors due to manufacturing.
 
-<img src="Build%20log%201.resources/2014-12-26%2014.15.23.jpg" height="3264" width="2448"/><br/>
-One side of the arms had holes for spot welding the threads in place.
-<img src="Build%20log%201.resources/2014-12-26%2014.24.05.jpg" height="3264" width="2448"/><br/>
-The holes for the weld were drilled like so.
-<img src="Build%20log%201.resources/2014-12-26%2014.15.29.jpg" height="3264" width="2448"/><br/>
-The other side had slots grinded out for tags to be welded on (this is where the outer layer of curved struts are bolted onto).
-<img src="Build%20log%201.resources/2014-12-26%2014.15.11.jpg" height="2448" width="3264"/>
-These are said tags that slide into the ends of the arms.
-<img src="Build%20log%201.resources/2014-12-26%2015.43.38.jpg" height="3264" width="2448"/><br/>
-Drilling these, and other tags for the inner arms, resulted in lots of metal shavings (not anything unique, but I’m a freaking software guy, so I find this stuff fascinating.
+{% include image.html url='2014-12-26%2011.55.56.jpg' description='Chopping metal to length with a drop saw and grinding plate. I have a new appreciation of having the right tools for the right job after envisaging hacksawing metal pipes.' %}
 
-<img src="Build%20log%201.resources/2014-12-26%2015.44.08.jpg" height="2448" width="3264"/><br/>
-Here are the tags at the end of the arms, welded in place.
-<img src="Build%20log%201.resources/2014-12-26%2015.44.13.jpg" height="2448" width="3264"/><br/>
-And the thread welded in place.
-<img src="Build%20log%201.resources/2014-12-26%2015.44.20.jpg" height="2448" width="3264"/>
-Two down, 6 to go! (Two of them not shown)
+{% include image.html url='2014-12-26%2014.15.23.jpg' description='One side of the arms had holes for spot welding the threads in place.' %}
 
-<img src="Build%20log%201.resources/2014-12-26%2015.44.35.jpg" height="2448" width="3264"/><br/>
-The tags for the inner struts were smaller, and eventually welded on along the arms.
-<img src="Build%20log%201.resources/2014-12-26%2018.56.10.jpg" height="3264" width="2448"/><br/>
-With the arms mostly done, it was time to work on the main axle. Welding the coupling nuts at even angles using nothing but wooden blocks, because I’m still paying off a student loan and can’t afford a workshop.
+{% include image.html url='2014-12-26%2014.24.05.jpg' description='The holes for the weld were drilled like so.' %}
 
-<img src="Build%20log%201.resources/2014-12-26%2019.55.21.jpg" height="2448" width="3264"/><br/>
-And then boom, with the axle and arms, we finally reify the idea such that we all start getting really excited about the final result. With help from the art deco fence, spare scaff pipe, and scaff clamps for mounting.
+{% include image.html url='2014-12-26%2014.15.29.jpg' description='The other side had slots grinded out for tags to be welded on (this is where the outer layer of curved struts are bolted onto).' %}
 
-<img src="Build%20log%201.resources/CIMG8223.JPG" height="3456" width="4608"/><br/>
-A close up of the coupling nuts connected to the axle.
+{% include image.html url='2014-12-26%2014.15.11.jpg' description='These are said tags that slide into the ends of the arms.' %}
 
-<img src="Build%20log%201.resources/2014-12-28%2008.12.57.jpg" height="2448" width="3264"/><br/>
-At this stage, Patrick taught me to weld so I did my best to make straight lines without moving too quickly.
-<img src="Build%20log%201.resources/2014-12-31%2010.46.47.jpg" height="3264" width="2448"/><br/>
-We then got to the point of creating some curved struts to go between the arms. Patrick happened to have one these handy manual pipe rollers, which allow you to gradually add a curve to a length of pipe.
+{% include image.html url='2014-12-26%2015.43.38.jpg' description='Drilling these, and other tags for the inner arms, resulted in lots of metal shavings (not anything unique, but I’m a freaking software guy, so I find this stuff fascinating.' %}
 
-To calculate the curvature, I cheated and pretended the helical curves were curved in only one dimension and drew the curve on the concrete in chalk… which we compared the rolled pipes to.
-<img src="Build%20log%201.resources/IMG_2055.JPG" height="2448" width="3264"/><br/>
+{% include image.html url='2014-12-26%2015.44.08.jpg' description='Here are the tags at the end of the arms, welded in place.' %}
 
-<img src="Build%20log%201.resources/IMG_2057%202.JPG" height="1536" width="2048"/><br/>
+{% include image.html url='2014-12-26%2015.44.13.jpg' description='And the thread welded in place.' %}
 
+{% include image.html url='2014-12-26%2015.44.20.jpg' description='Two down, 6 to go! (Two of them not shown)' %}
 
-<img src="Build%20log%201.resources/CIMG8225.JPG" height="3456" width="4608"/><br/>
+{% include image.html url='2014-12-26%2015.44.35.jpg' description='The tags for the inner struts were smaller, and eventually welded on along the arms.' %}
 
-We also had to create some braces for support and to keep the arms at a regular spacing. Here they are with the metal tags fitted but yet to be welded in place.
+{% include image.html url='2014-12-26%2018.56.10.jpg' description='With the arms mostly done, it was time to work on the main axle. Welding the coupling nuts at even angles using nothing but wooden blocks, because I’m still paying off a student loan and can’t afford a workshop.' %}
 
-<img src="Build%20log%201.resources/CIMG8226.JPG" height="3456" width="4608"/><br/>
-Before we add the braces.
+{% include image.html url='2014-12-26%2019.55.21.jpg' description='And then boom, with the axle and arms, we finally reify the idea such that we all start getting really excited about the final result. With help from the art deco fence, spare scaff pipe, and scaff clamps for mounting.' %}
 
-<img src="Build%20log%201.resources/CIMG8281.JPG" height="3456" width="4608"/><br/>
-After.
+{% include image.html url='CIMG8223.JPG' description='A close up of the coupling nuts connected to the axle.' %}
 
+{% include image.html url='2014-12-28%2008.12.57.jpg' description='At this stage, Patrick taught me to weld so I did my best to make straight lines without moving too quickly.' %}
 
+{% include image.html url='2014-12-31%2010.46.47.jpg' description='We then got to the point of creating some curved struts to go between the arms. Patrick happened to have one these handy manual pipe rollers, which allow you to gradually add a curve to a length of pipe.' %}
 
+{% include image.html url='IMG_2055.JPG' description='To calculate the curvature, I cheated and pretended the helical curves were curved in only one dimension and drew the curve on the concrete in chalk...' %}
 
-<img src="Build%20log%201.resources/CIMG8294.JPG" height="3456" width="4608"/>
-Half way through the project, Patrick decided he wanted a more grunty welder!
+{% include image.html url='IMG_2057%202.JPG' description='Which we compared the rolled pipes to.' %}
 
-<img src="Build%20log%201.resources/IMG_2041.JPG" height="2448" width="3264"/><br/>
-The previous welder, kindly lent to us by Grist LINK, performed admirably, but would start to overheat (hence the jerry-rigged silver fan to try to keep things a bit cooler).
+{% include image.html url='CIMG8225.JPG' description='We also had to create some braces for support and to keep the arms at a regular spacing. Here they are with the metal tags fitted but yet to be welded in place.' %}
 
+{% include image.html url='CIMG8226.JPG' description='Before we add the braces.' %}
 
-<img src="Build%20log%201.resources/2015-01-01%2017.14.28.jpg" height="2448" width="3264"/><br/>
-With the outer layer in place.
+{% include image.html url='CIMG8281.JPG' description='After.' %}
 
-<img src="Build%20log%201.resources/CIMG8288.JPG" height="3456" width="4608"/><br/>
-What the corners look like up close.
+{% include image.html url='CIMG8294.JPG' description='Half way through the project, Patrick decided he wanted a more grunty welder!' %}
 
-<img src="Build%20log%201.resources/IMG_2064.JPG" height="2448" width="3264"/><br/>
-Next went the inner struts, which face the same direction as the outer layer.
+{% include image.html url='IMG_2041.JPG' description='The previous welder, kindly lent to us by (Grist)[http://stuffidestroyed.tumblr.com/], performed admirably, but would start to overheat (hence the jerry-rigged silver fan to try to keep things a bit cooler).' %}
 
+{% include image.html url='2015-01-01%2017.14.28.jpg' description='With the outer layer in place.' %}
 
+{% include image.html url='CIMG8288.JPG' description='What the corners look like up close.' %}
+
+{% include image.html url='IMG_2064.JPG' description='Next went the inner struts, which face the same direction as the outer layer.' %}
 
