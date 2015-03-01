@@ -11,7 +11,7 @@ The idea was: **a 3m high cylinder of criss crossing metal pipes with led strips
 
 Here's a video of the final product:
 
-{% youtube http://youtu.be/rc7HvZSxNMo %}
+<iframe style="display: block; margin: 25px auto 25px auto;" width="560" height="420" allowfullscreen="allowfullscreen" src="http://www.youtube.com/embed/rc7HvZSxNMo"> </iframe>
 
 ## Conception
 
@@ -127,7 +127,7 @@ Patrick’s vision for the structure, with the additional constraint that it had
 
 Here it is in motion:
 
-{% youtube 2XqMh_6Bj8Q %}
+<iframe style="display: block; margin: 25px auto 25px auto;" width="560" height="420" allowfullscreen="allowfullscreen" src="http://www.youtube.com/embed/2XqMh_6Bj8Q"> </iframe>
 
 {% include image.html url='CIMG8288.JPG' description='What the corners look like up close.' %}
 
