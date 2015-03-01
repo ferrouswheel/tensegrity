@@ -1,0 +1,200 @@
+---
+layout: post
+title:  "Build Log"
+date:   2015-03-01 19:34:03
+categories: build
+---
+
+Tensegrity was originally a project built during the southern hemisphere summer of 2014/2015 for [Kiwiburn 2015](http://kiwiburn.com). I had the original concept shortly after the previous Kiwiburn where I built ["The Sensorium"](https://github.com/ferrouswheel/sensorium). The Sesnorium allowed me to learn many new skills, as my electronics knowledge had atrophied since high school and first year Physics, but Tensegrity was way more ambitious.
+
+The idea was: **a 3m high cylinder of criss crossing metal pipes with led strips, with the whole structure spun at 1-2 revs per second atop a 3m high pole!**
+
+Here's a video of the final product:
+
+{% youtube http://youtu.be/rc7HvZSxNMo %}
+
+## Conception
+
+Things began at [Fidel's cafe](http://www.fidelscafe.com/) discussing art
+projects ideas over the cliche napkin.
+
+{% include image.html url='Picture_3.jpeg' width='450px' description='Illustration for a discussion about having lots of spinning things in alignment vs. one big structure (birds eye view). We went for one large structure.' %}
+
+{% include image.html url='Picture_1.jpeg' height='300px' description='Still shitty, but slightly better concept drawing - for some reason I insist on building things with curves.' %}
+
+I was being quite ambitious; I knew nothing about slip rings, welding, or working with metal when I started.  As a scientist and software developer, I’m happy working with complex ideas and creating elegant representations of abstract concepts, but creating giant spinning metal sculptures in the real world was something very different!
+
+I called out to my community for people keen to help me with this audacious idea, and had many wonderful people offer assistance. The most valuable in making the project succeed (and in easing my trepidation at trying to pull this off) was that of [Patrick Herd](http://www.pnuke.co.nz/) who took the lead on the mechanical engineer and construction techniques, and [Felicia Ulsted](http://feliciaullstad.com/) who helped with the metal working and construction.
+
+Tensegrity is what I’d consider my first serious foray into doing art installations, and while I’m very happy with the end result, the real joy came from everything I learnt during it and seeing other people’s reactions at Kiwiburn!
+
+Without further ado, here’s the story of it’s construction...
+
+## Electric motors and AC drives
+
+Patrick, getting into the idea, browsed [Trademe](http://trademe.co.nz) and found both a second-hand motor and an AC drive. I bought them up, along with a Himel box to store and protect the gubbins from the weather.
+
+{% include image.html height='300px' url='2014-10-18%2012.30.04.jpg' description='I guess one horse is enough to spin things around?' %}
+
+{% include image.html height='300px' url='2014-10-18%2012.23.55.jpg' description='The gruntiest electric motor I’ve bought since racing Tamiya cars.' %}
+
+{% include image.html height='300px' url='Picture_2.jpeg' description='Turns out AC drives and giant motors are somewhat industrial in nature, so while the wiring was pretty simple I left it to Patrick to wire things up.' %}
+
+{% include image.html height='300px' url='2014-10-18%2012.25.09.jpg' description='3-phase electric motors can typically be wired up for <a href="http://en.wikipedia.org/wiki/Three-phase_electric_power#Three-wire_and_four-wire_circuits">delta or wye configurations</a> 3-phase power, neither of which I\'d heard of before.' %}
+
+{% include image.html url='2014-10-18%2012.31.08.jpg' description='The wiring on the AC drive was slightly more complex.' %}
+
+It was as grunty as anticipated. Only 60 rpm (1 rev/sec), but just try stopping it from turning! And while a small axle spinning at that speed looks slow, the outer edge of a 2m diameter cylinder spun by it would travel approximately 6.3 m/s!
+
+## Simulation
+
+Before starting on the construction, I wanted to be able to visualise what it’d look like and make sure the concept was right. I also wanted to be able to start programming visual patterns before the main structure was completed. For the Sensorium, I only had one plasma-like effect due to time constraints. I was disappointed not have more patterns ready to go and I didn’t want to be caught out in the same way this time.
+
+Also, when your art is large, it’s much harder to play around with ideas in reality than from the comfort of your computer desk... ok, so I *could* have done this because it had a wireless access point (see later), but still.
+
+I used [Processing](https://processing.org) to create a simple 3d representation of the main parts. The code of which is [part of the project's github repo](https://github.com/ferrouswheel/tensegrity/tree/master/Processing/tensegrity).
+
+{% include image.html url='simulation_straight_and_curved.png' description='Straight or curved struts for the LEDs?' %}
+
+The image on the right is the design we went with, but the image on the left is the original concept. The original concept is the reason it's called tensegrity, and has more connection to [the concept of tensegrity](http://en.wikipedia.org/wiki/Tensegrity). The longer story is that it mimics the shape of a tension structure that my really old evolutionary spring/physics experiment [biobox](https://github.com/ferrouswheel/biobox) would often stabilise with.
+
+As a teenager, it fascinated me why a cube of springs would stabilise to such a shape, and it was only years later that I learnt there was a word for it.
+
+Beyond just allowing me to simulate LED patterns, the simulation had some other benefits:
+
+- It worked out the measurements of the curved struts between the arms. These measurements were necessary for cutting and bending the metal piping we ended up using. Similarly, it meant I could order the right amount of LED tape needed. While this would be possible to solve with pen, paper, sufficient maths and geometry knowledge, I'm lazy and also wanted to be able to alter the dimensions and not have to recalculate everything.
+- It creating pixel layout files for each channel of [openpixelcontrol](http://openpixelcontrol.org/) (OPC) data which could be read by a number of pattern generator frameworks.
+- It created a [fadecandy server config file](https://github.com/scanlime/fadecandy/blob/master/doc/fc_server_config.md) for mapping OPC channel data to the physical layout of fadecandies and strips (see later).
+- Most awesomely, it has really basic OPC server to allow me to start writing effects that directly controlled the simulation. All I would have to do in order to move to using the effects on the finished physical product is change the IP address the pattern generator was sending data to.
+
+Of course, all this functionality was only in the finished product and it took me several refactorings and iterations to get to it.
+
+A side benefit of creating this simulation is that we are discussing the idea of letting people (such as design or computer science students at local schools) submit patterns to us before an event so that they can see their light pattern on the final product. With a simulation, they can test the patterns out before submission.
+
+## Metal structure
+
+Once the structure was confirmed, Patrick had a plan to turn it into metal.
+
+{% include image.html url='Picture.jpeg' description='We picked up a bunch of tubing from Wellington Steel and Tube.' %}
+
+Patrick’s vision for the structure, with the additional constraint that it had be transportable, was to have a centre axle made of scaffold pipe with coupling nuts welded to it. Four arms at the top and bottom would then have matching size threading spot-welded into them. Each arm could be screwed into place and their distance adjusted to match any measurement errors due to our backyard manufacturing.
+
+{% include image.html url='2014-12-26%2011.55.56.jpg' description='Here we are chopping metal to length with a drop saw and grinding plate. I have a new appreciation of having the right tools for the right job after envisaging hacksawing metal pipes.' %}
+
+{% include image.html url='2014-12-26%2014.15.23.jpg' description='One side of the arms had holes to allow us to spot weld the threads in place.' %}
+
+{% include image.html url='2014-12-26%2014.24.05.jpg' description='The holes for the weld were drilled like so.' %}
+
+{% include image.html url='2014-12-26%2014.15.29.jpg' description='The other side had slots grinded out for tags to be welded on (this is where the outer layer of curved struts are bolted onto).' %}
+
+{% include image.html url='2014-12-26%2014.15.11.jpg' description='These are said tags that slide into the ends of the arms.' %}
+
+{% include image.html url='2014-12-26%2015.43.38.jpg' description='Drilling these, and other tags for the inner arms, resulted in lots of metal shavings (not anything unique, but I’m a software guy, so all this real world manufacturing stuff is new and shiny to me).' %}
+
+{% include image.html url='2014-12-26%2015.44.08.jpg' description='Here are the tags at the end of the arms, welded in place.' %}
+
+{% include image.html url='2014-12-26%2015.44.13.jpg' description='And the thread welded in place.' %}
+
+{% include image.html url='2014-12-26%2015.44.20.jpg' description='Two down, 6 to go! (Two of them not shown)' %}
+
+{% include image.html url='2014-12-26%2015.44.35.jpg' description='The tags for the inner struts were smaller, and eventually welded on along the arms.' %}
+
+{% include image.html url='2014-12-26%2018.56.10.jpg' description='With the arms mostly done, it was time to work on the main axle. Welding the coupling nuts at even angles using nothing but wooden blocks. One day I’ll pay off my student loan so I can afford a workshop!' %}
+
+{% include image.html url='2014-12-26%2019.55.21.jpg' description='And then boom, with the axle and arms, we finally reify the idea such that we all start getting really excited about the final result! With help from the art deco fence, spare scaff pipe, and scaff clamps for mounting.' %}
+
+{% include image.html url='CIMG8223.JPG' description='A close up of the coupling nuts connected to the axle.' %}
+
+{% include image.html url='2014-12-28%2008.12.57.jpg' description='At this stage, Patrick taught me to weld so I did my best to make straight lines without moving too quickly. By the end of the project, I got a lot better at this!' %}
+
+{% include image.html url='2014-12-31%2010.46.47.jpg' description='We then got to the point of creating some curved struts to go between the arms. Patrick happened to have one these handy manual pipe rollers, which allow you to gradually add a curve to a length of pipe.' %}
+
+{% include image.html url='IMG_2055.JPG' description='To calculate the curvature, I cheated and pretended the helical curves were curved in only one dimension and drew the curve on the concrete in chalk. We could get away with this because the helical curve is very gradual and is never more than a quarter rotation. Usually a <a href="http://mathworld.wolfram.com/Helix.html">helix is not only curving around the cylinder it\'s on, but also curving along the length of the cylinder as well.</a>' %}
+
+{% include image.html url='IMG_2057%202.JPG' description='Here are all the struts in bent into shape. Luckily they don\'t have to be perfect, as they are put under tension and can be forced into place.' %}
+
+{% include image.html url='CIMG8225.JPG' description='We also had to create some braces for support and to keep the arms at a regular spacing. Here they are with the metal tags fitted but yet to be welded in place.' %}
+
+{% include image.html url='CIMG8226.JPG' description='Before we add the braces.' %}
+
+{% include image.html url='CIMG8281.JPG' description='After (with bonus view of my butt).' %}
+
+{% include image.html url='CIMG8294.JPG' description='Half way through the project, Patrick decided he wanted a more grunty welder!' %}
+
+{% include image.html url='IMG_2041.JPG' description='The previous welder, kindly lent to us by <a href="http://stuffidestroyed.tumblr.com/">Grist</a>, performed admirably. Though in the heat of summer  it would start to overheat (hence the jerry-rigged silver fan to try to keep things a bit cooler).' %}
+
+{% include image.html url='2015-01-01%2017.14.28.jpg' description='Here is tensegrity with the outer layer in place.' %}
+
+Here it is in motion:
+
+{% youtube 2XqMh_6Bj8Q %}
+
+{% include image.html url='CIMG8288.JPG' description='What the corners look like up close.' %}
+
+{% include image.html url='IMG_2064.JPG' description='Next went the inner struts, which face the same direction as the outer layer.' %}
+
+{% include image.html height='300px' url='IMG_2067.JPG' description='Here I am welding tags onto the arms  for attaching the middle layer of struts.' %}
+
+{% include image.html height='300px' url='IMG_2075.JPG' description='After cutting things to length, we still needed to trim the struts to fit due to the variability of tags and wanting to keep the angular distance between bolt holes equal.' %}
+
+{% include image.html height='300px' url='IMG_2081.JPG' description='Next, we have to fit the middle layer of struts which go in the opposite direction to both the inner and outer layers. This is where it starts getting tricky to remember the angle of things and to avoid getting tangled up. The struts at different angles, while the whole structure rotates, and LEDs are flashing their own patterns, should lead to some interesting effects that mess with people\'s heads.' %}
+
+{% include image.html height='300px' url='IMG_2083.JPG' description='The tags on the arms are each angled to match the direction of the struts at that particular layer. Which helps for remembering how everything should be attached when reassembling things.' %}
+
+{% include image.html height='300px' url='IMG_2085.JPG' description='All the bits collapse to not much space. Quite good for the storage and transport of an artwork that will take up so much volumetric space when assembled!' %}
+
+{% include image.html height='300px' url='IMG_2086.JPG' description='Now it was time to clean up the welds before painting the pipes. This involved much grinding...' %}
+
+{% include image.html height='300px' url='CIMG8296.JPG' description='At this stage I was really yearning for a workshop with vices and bench space. At the end of it, I was all "Ow, mah back!"' %}
+
+{% include image.html height='300px' url='CIMG8292.JPG' description='All the braces hanging in the garage and undercoated. The rest of the pipes were more annoying to paint due to the their long curvy nature, and due to four solid days of typical Wellington wind (read: a freaking gale).' %}
+
+{% include image.html height='300px' url='2015-01-09%2009.38.45.jpg' description='But after things were painted, it was worth the effort. Nice matt black finish :-)' %}
+
+{% include image.html height='300px' url='2015-01-10%2017.13.25.jpg' description='I still needed to weld on some fastening points to the axle, for electronics and 4x 20A 5V Meanwell PSUs. And yup, my welding certainly can be improved upon.' %}
+
+{% include image.html height='300px' url='2015-01-10%2020.15.51.jpg' description='Due to a miscalculation when picking up the metal tubing, the axle of scaffold pipe was cut too short. We had to extend the pipe slightly. Another tricky weld requiring things to stay straight, which Patrick did with great finesse.' %}
+
+## Bearing construction
+
+{% include image.html url='CIMG8322.JPG' description='' %}
+
+{% include image.html url='CIMG8323.JPG' description='' %}
+
+{% include image.html url='CIMG8324.JPG' description='' %}
+
+{% include image.html url='CIMG8327.JPG' description='' %}
+
+{% include image.html url='CIMG8328.JPG' description='' %}
+
+{% include image.html url='IMG_2099.JPG' description='' %}
+
+
+## Scaffolding
+
+{% include image.html url='IMG_2100.jpg' description='' %}
+
+{% include image.html url='IMG_2102.jpg' description='' %}
+
+{% include image.html url='IMG_2106.jpg' description='' %}
+
+{% include image.html url='CIMG8361%203.JPG' description='' %}
+
+{% include image.html url='CIMG8362%202.JPG' description='' %}
+
+{% include image.html url='CIMG8367%202.JPG' description='' %}
+
+{% include image.html url='CIMG8371%202.JPG' description='' %}
+{% include image.html url='CIMG8374%202.JPG' description='' %}
+
+{% include image.html url='CIMG8376%202.JPG' description='' %}
+
+{% include image.html url='CIMG8378%203.JPG' description='' %}
+
+{% include image.html url='CIMG8387%202.JPG' description='' %}
+
+{% include image.html url='CIMG8394%202.JPG' description='' %}
+{% include image.html url='CIMG8395%202.JPG' description='' %}
+{% include image.html url='CIMG8396%202.JPG' description='' %}
+
+{% include image.html url='CIMG8388%202.JPG' description='' %}

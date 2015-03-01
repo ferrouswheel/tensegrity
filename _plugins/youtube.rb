@@ -20,9 +20,9 @@ class YouTube < Liquid::Tag
   end
  
   def render(context)
-    "<iframe style=\"display: block; margin: 0 auto;\" width=\"#{@width}\" height=\"#{@height}\" 
+    "<iframe style=\"display: block; margin: 25px auto 25px auto;\" width=\"#{@width}\" height=\"#{@height}\" 
         allowfullscreen=\"allowfullscreen\"
-        src=\"http://www.youtube.com/embed/#{@id}?color=white&theme=light\"> </iframe>"
+        src=\"http://www.youtube.com/embed/#{@id}\"> </iframe>"
   end
  
   Liquid::Template.register_tag "youtube", self
