@@ -5,6 +5,7 @@ date:   2015-03-01 20:25:03
 ---
 
 Having [built Tensegrity]({{site.baseurl}}/) it was time to
+Having [built Tensegrity]({% post_url 2015-03-01-build-log %}) it was time to
 take it on the road!
 
 {% include image.html url='2015-01-19%2012.22.50.jpg' description='Packed into a trailer, and a roof rack that’s close to it’s weight rating.' %}
