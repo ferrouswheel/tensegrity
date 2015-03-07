@@ -2,7 +2,6 @@
 layout: post
 title:  "Build Log"
 date:   2015-03-01 19:34:03
-categories: build
 ---
 
 Tensegrity was originally a project built during the southern hemisphere summer of 2014/2015 for [Kiwiburn 2015](http://kiwiburn.com). I had the original concept shortly after the previous Kiwiburn where I built ["The Sensorium"](https://github.com/ferrouswheel/sensorium). The Sesnorium allowed me to learn many new skills, as my electronics knowledge had atrophied since high school and first year Physics, but Tensegrity was way more ambitious.
@@ -12,6 +11,16 @@ The idea was: **a 3m high cylinder of criss crossing metal pipes with led strips
 Here's a video of the final product:
 
 <iframe style="display: block; margin: 25px auto 25px auto;" width="560" height="420" allowfullscreen="allowfullscreen" src="http://www.youtube.com/embed/rc7HvZSxNMo"> </iframe>
+
+- [Conception](#conception)
+- [Electric Motors and AC drives](#electric-motors-and-ac-drives)
+- [Simulation](#simulation)
+- [Metal Structure](#metal-structure)
+- [Bearing Construction](#bearing-construction)
+- [Power and Electronics](#power-and-electronics)
+- [Software](#software)
+- [Scaffolding](#scaffolding)
+- [Test Run](#test-run)
 
 ## Conception
 
@@ -50,7 +59,7 @@ It was as grunty as anticipated. Only 60 rpm (1 rev/sec), but just try stopping 
 
 Before starting on the construction, I wanted to be able to visualise what it’d look like and make sure the concept was right. I also wanted to be able to start programming visual patterns before the main structure was completed. For the Sensorium, I only had one plasma-like effect due to time constraints. I was disappointed not have more patterns ready to go and I didn’t want to be caught out in the same way this time.
 
-Also, when your art is large, it’s much harder to play around with ideas in reality than from the comfort of your computer desk... ok, so I *could* have done this because it had a wireless access point (see later), but still.
+Also, when your art is large, it’s much harder to play around with ideas in reality than from the comfort of your computer desk... ok, so I *could* have done this because it had a wireless access point ([see later](#software)), but still.
 
 I used [Processing](https://processing.org) to create a simple 3d representation of the main parts. The code of which is [part of the project's github repo](https://github.com/ferrouswheel/tensegrity/tree/master/Processing/tensegrity).
 
@@ -64,7 +73,7 @@ Beyond just allowing me to simulate LED patterns, the simulation had some other 
 
 - It worked out the measurements of the curved struts between the arms. These measurements were necessary for cutting and bending the metal piping we ended up using. Similarly, it meant I could order the right amount of LED tape needed. While this would be possible to solve with pen, paper, sufficient maths and geometry knowledge, I'm lazy and also wanted to be able to alter the dimensions and not have to recalculate everything.
 - It creating pixel layout files for each channel of [openpixelcontrol](http://openpixelcontrol.org/) (OPC) data which could be read by a number of pattern generator frameworks.
-- It created a [fadecandy server config file](https://github.com/scanlime/fadecandy/blob/master/doc/fc_server_config.md) for mapping OPC channel data to the physical layout of fadecandies and strips (see later).
+- It created a [fadecandy server config file](https://github.com/scanlime/fadecandy/blob/master/doc/fc_server_config.md) for mapping OPC channel data to the physical layout of fadecandies and strips ([see later](#power-and-electronics)).
 - Most awesomely, it has really basic OPC server to allow me to start writing effects that directly controlled the simulation. All I would have to do in order to move to using the effects on the finished physical product is change the IP address the pattern generator was sending data to.
 
 Of course, all this functionality was only in the finished product and it took me several refactorings and iterations to get to it.
@@ -169,6 +178,37 @@ Here it is in motion:
 
 {% include image.html url='IMG_2099.JPG' description='' %}
 
+## Power and Electronics
+
+used a slip ring to exchange mains voltage across the axle, bought 12 wire from
+ebay for $XXX. While I only needed 3 connections for single phase grounded
+power, we imagine that the slipring will be useful for future projects.
+
+the mains power is then split to 4 x 20A 5V meanwell power supplies. Each power
+supply sends power to two arms at either the top or the bottom. the reason for
+this is partly symmetry, but also because led strips tend to have a voltage
+drop if you make them too long and, and this can result in the far end looking
+dimmer.
+
+additionally i'm using
+[fadecandy](http://www.adafruit.com/product/1689) led controllers which have
+a limit of 64 leds per strip. This limit is due to the clock rate on the strips
+and Micah, the creator of fadecandy, wanted to optimise for great looking color
+and brightness. Only possible by dithering (TODO: and some other stuff? lnk to
+fadecandy repo) There is an issue open for [long strip mode](https://github.com/scanlime/fadecandy/issues/2)
+but once you get used to the deliciously smooth transitions and vibrant colors,
+you soon forget about that and design your installations to handle 64 led
+lengths.
+
+And that's what I did.
+
+There are a total of 12 curving struts, but each one is >3m long. I was using
+30 led/m neopixel strips and they
+
+## Software
+
+With all the construction in place, it's now time for a brief detour to talk
+about the software powering 
 
 ## Scaffolding
 
@@ -191,10 +231,15 @@ Here it is in motion:
 
 {% include image.html url='CIMG8378%203.JPG' description='' %}
 
-{% include image.html url='CIMG8387%202.JPG' description='' %}
+{% include image.html url='CIMG8388%202.JPG' description='' %}
 
+## Test Run
+
+Blow up of one arm of leds, because someone had reversed polarity on the 5V
+power line on that arm. Ironically 
+
+{% include image.html url='CIMG8387%202.JPG' description='' %}
 {% include image.html url='CIMG8394%202.JPG' description='' %}
 {% include image.html url='CIMG8395%202.JPG' description='' %}
 {% include image.html url='CIMG8396%202.JPG' description='' %}
-
 {% include image.html url='CIMG8388%202.JPG' description='' %}
