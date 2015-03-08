@@ -166,49 +166,81 @@ Here it is in motion:
 
 ## Bearing construction
 
-{% include image.html url='CIMG8322.JPG' description='' %}
-
-{% include image.html url='CIMG8323.JPG' description='' %}
+We needed reasonable solid bearings for the top and bottom of the rotating
+cylinder, but where would we get such a thing without spending a fortune? Turns
+out you can buy a trailer hub from the auto store for less than $NZ 200, and
+with a little metal sheathing welded into place, you can fit these snugly into
+a scaffold pipe.
 
 {% include image.html url='CIMG8324.JPG' description='' %}
 
+{% include image.html url='CIMG8323.JPG' description='The bearings that are placed inside the trailer hubs.' %}
+
+{% include image.html url='CIMG8322.JPG' description='We needed to clear the hub to attach it to the mounting point, so we came up with an interim solution involving a few washers.' %}
+
 {% include image.html url='CIMG8327.JPG' description='' %}
 
-{% include image.html url='CIMG8328.JPG' description='' %}
+{% include image.html url='CIMG8328.JPG' description='The interim solution wasn\'t great, so we used a length of spare metal tubing instead.' %}
 
-{% include image.html url='IMG_2099.JPG' description='' %}
+{% include image.html url='IMG_2099.JPG' description='After a visit to the fastening store, we had some coupling nuts to provide the final configuration for attaching the cylinder to it\'s mounting point.' %}
+
+We essentially did the same thing for the bottom, but because the bottom hub
+would be resting on, and screwed directly to, a big piece of metal, it didn't
+need any fastenings.
 
 ## Power and Electronics
 
-used a slip ring to exchange mains voltage across the axle, bought 12 wire from
-ebay for $XXX. While I only needed 3 connections for single phase grounded
-power, we imagine that the slipring will be useful for future projects.
+One challenge for me was how to transfer power across the axle. Fortunately,
+when I asked friends about this they all said "You need a slip ring!", and lo I 
+[found one on ebay](http://www.ebay.com/sch/moflon_company/m.html?_nkw=&_armrs=1&_ipg=&_from=).
+I bought a 12x10A connection slip ring from ebay for $US 325. While we only
+really needed 3 connections for single phase power, we figured that the
+slip-ring will be useful for future projects too.
 
-the mains power is then split to 4 x 20A 5V meanwell power supplies. Each power
-supply sends power to two arms at either the top or the bottom. the reason for
-this is partly symmetry, but also because led strips tend to have a voltage
-drop if you make them too long and, and this can result in the far end looking
-dimmer.
+The mains power is then split to 4 x 20A 5V Meanwell power supplies, since I'd
+used 3 of these previously for the Sensorium, and I bought spares so it'd be
+easy to swap them out if one was damaged. Each PSU sends power to two arms at
+either the top or the bottom. The reason for sending it to the bottom and top is that
+led strips tend to have the voltage drop if you make them too long and,
+and this can result in the far end looking noticeably dimmer.
 
-additionally i'm using
-[fadecandy](http://www.adafruit.com/product/1689) led controllers which have
+Additionally I'm using
+[Fadecandy](http://www.adafruit.com/product/1689) LED controllers which have
 a limit of 64 leds per strip. This limit is due to the clock rate on the strips
 and Micah, the creator of fadecandy, wanted to optimise for great looking color
-and brightness. Only possible by dithering (TODO: and some other stuff? lnk to
-fadecandy repo) There is an issue open for [long strip mode](https://github.com/scanlime/fadecandy/issues/2)
-but once you get used to the deliciously smooth transitions and vibrant colors,
+and brightness using delta-sigma modulation. There is an issue open for [long
+strip mode](https://github.com/scanlime/fadecandy/issues/2) but once you get
+used to the deliciously smooth fades and vibrant colors,
 you soon forget about that and design your installations to handle 64 led
-lengths.
+lengths (or use a different LED chips).
 
 And that's what I did.
 
 There are a total of 12 curving struts, but each one is >3m long. I was using
-30 led/m neopixel strips and they
+30 LED/m Neopixel strips, so each strut had >90 (3x30) LEDs. To use Fadecandy,
+I split each strut's length of LEDs in half and sent a data signal from the top
+and bottom of the structure... just like I was doing with the 5V power.
+
+In the middle of the axle was a Raspberry Pi B, with the 4 port USB hub shield
+[Raspiado](https://www.kickstarter.com/projects/10la/raspiado-the-usb-hub-that-fits-your-raspberry-pi)
+(I'd backed the project a while ago, but didn't quite know what I was going to
+use it for at the time!)
+
+All the electronics were sealed with a less than perfect combination of
+sealable plastic lunchboxes, [heat-shrink tubing](http://en.wikipedia.org/wiki/Heat-shrink_tubing) and insulation tape. In some
+places I used [cable glands](http://en.wikipedia.org/wiki/Cable_gland), but
+only discovered them towards the end. One thing I learnt from the project, is
+that things are much easier once you know they exist and what they are called.
+If you don't then you can end up creating jerry-rigged sub-optimal solutions. Which
+can be fun to fumble through, so long as you don't have to do it for your
+entire project!
 
 ## Software
 
 With all the construction in place, it's now time for a brief detour to talk
-about the software powering 
+about the software powering the art.
+
+As I mentioned above, we use the Raspberry Pi.
 
 ## Scaffolding
 

@@ -5,7 +5,7 @@ description: > # this means to ignore newlines until "baseurl:"
   Tensegrity is a kinetic light sculpture with over 1600 neopixel leds.
   The art piece was shown at Kiwiburn 2015, and the artists are based
   in Wellington, New Zealand.
-baseurl: "/tensegrity/" # the subpath of your site, e.g. /blog/
+baseurl: "/tensegrity" # the subpath of your site, e.g. /blog/
 url: "http://ferrouswheel.github.io" # the base hostname & protocol for your site
 twitter_username: jekyllrb
 github_username:  jekyll
