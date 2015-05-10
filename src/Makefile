@@ -1,4 +1,4 @@
-PROGRAMS = simple rings spokes dot particle_trail mixer
+PROGRAMS = spinhard
 
 # Important optimization options
 CFLAGS = -O3 -ffast-math -fno-rtti

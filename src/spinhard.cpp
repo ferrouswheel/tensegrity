@@ -276,7 +276,7 @@ public:
 
 void argumentUsage()
 {
-    fprintf(stderr, "[-v] [-fps LIMIT] [-speed MULTIPLIER] [-server HOST[:port]]");
+    fprintf(stderr, "[-v] [-fps LIMIT] [-random] [-speed MULTIPLIER] [-server HOST[:port]]");
 }
 
 void usage(const char *name)
