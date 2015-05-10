@@ -212,9 +212,7 @@ and brightness using delta-sigma modulation. There is an issue open for [long
 strip mode](https://github.com/scanlime/fadecandy/issues/2) but once you get
 used to the deliciously smooth fades and vibrant colors,
 you soon forget about that and design your installations to handle 64 led
-lengths (or use a different LED chips).
-
-And that's what I did.
+lengths (or use different LED chips).
 
 There are a total of 12 curving struts, but each one is >3m long. I was using
 30 LED/m Neopixel strips, so each strut had >90 (3x30) LEDs. To use Fadecandy,
@@ -224,7 +222,13 @@ and bottom of the structure... just like I was doing with the 5V power.
 In the middle of the axle was a Raspberry Pi B, with the 4 port USB hub shield
 [Raspiado](https://www.kickstarter.com/projects/10la/raspiado-the-usb-hub-that-fits-your-raspberry-pi)
 (I'd backed the project a while ago, but didn't quite know what I was going to
-use it for at the time!)
+use it for at the time!). Each Fadecandy is controlled via USB, a connected by
+a 1.5m length of USB cable to the Raspiado. The Fadecandies themselves were
+placed two at the top of the axle, and two at bottom. They were mounted on
+a prototype board and placed in old plastic pill bottles for shelter from the
+elements:
+
+IMAGE
 
 All the electronics were sealed with a less than perfect combination of
 sealable plastic lunchboxes, [heat-shrink tubing](http://en.wikipedia.org/wiki/Heat-shrink_tubing) and insulation tape. In some
@@ -238,11 +242,48 @@ entire project!
 ## Software
 
 With all the construction in place, it's now time for a brief detour to talk
-about the software powering the art.
+about the software controlling the effects.
 
-As I mentioned above, we use the Raspberry Pi.
+As I mentioned above, Fadecandy makes our life easy for controlling LEDs, and
+part of that ease comes from the included server software. The Fadecandy
+server listens for USB devices being connected, and listens for open pixel
+control clients. This simplifies managing the connection/disconnection of
+fadecandy boards, and provides an [easy way to map pixel
+ranges from OPC channels to specific fadecandy strips](https://github.com/scanlime/fadecandy/blob/master/doc/fc_server_config.md#fadecandy-devices).
+
+Another bonus is a wealth of examples for creating pattern generation code.
+Instead of having to come up with my own framework for effects, I built upon
+[Fadecandy's c++ library]() by altering it to generate effects for multiple
+channels, and including a pattern randomiser.
+
+Because the raspberry pi running the fadecandy server was being placed on the
+rotating structure, I also added a small USB wifi adaptor and setup it up to
+create a [wifi access point](https://learn.adafruit.com/setting-up-a-raspberry-pi-as-a-wifi-access-point/overview) on boot. And just because I like completeness, I [added avahi-daemon](http://www.howtogeek.com/167190/how-and-why-to-assign-the-.local-domain-to-your-raspberry-pi/)
+so I could connect to raspberry pi at `tensegrity.local`.
+
+I then made the fadecandy server listen on wifi interface, so while I **could**
+run the pattern generation code directly on the raspberry pi, I could also
+program patterns on my laptop and stream them to the fadecandy server from my
+laptop. In a normal installation, the pattern generation is run locally, but
+it's fun to be able to mess around with things remotely.
+
+All code for the pattern generation is [available in the github repo](https://github.com/ferrouswheel/tensegrity/tree/master/src).
 
 ## Scaffolding
+
+With all this focus on the cylinder structure itself, it was easy to forget we
+still needed a way to mount it somehow. The plan early on decided on a scaffold
+box over mounting things on a 3m pole, because that was being a little too
+ambitious for our time constraints and experience.
+
+We kept an eye out for cheap scaffolding on trademe. We had one promising lead
+within the community, but after promising it to us they later turned around
+and donated to another group. Doh!
+
+Eventually, time was running out, so I found a supplier of new scaffolding who
+quoted me for all the bits we'd need, and they sent it by freight to my house.
+Alas, this took a number of days longer than expected and when it arrived we
+had less than a week before kiwiburn to get things mounted.
 
 {% include image.html url='IMG_2100.jpg' description='' %}
 
