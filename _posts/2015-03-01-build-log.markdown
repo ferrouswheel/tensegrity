@@ -8,7 +8,7 @@ Tensegrity was originally a project built during the southern hemisphere summer 
 
 The idea was: **a 3m high cylinder of criss crossing metal pipes with led strips, with the whole structure spun at 1-2 revs per second atop a 3m high pole!**
 
-Here's a video of the final product:
+We didn't quite end up doing that, but here's a video of the final product:
 
 <iframe style="display: block; margin: 25px auto 25px auto;" width="560" height="420" allowfullscreen="allowfullscreen" src="http://www.youtube.com/embed/rc7HvZSxNMo"> </iframe>
 
@@ -176,6 +176,12 @@ a scaffold pipe.
 
 {% include image.html url='CIMG8323.JPG' description='The bearings that are placed inside the trailer hubs.' %}
 
+{% include image.html url='2015-01-10 20.33.38.jpg' description='Adding grease to the bearings' %}
+
+{% include image.html url='2015-01-10 20.15.29.jpg' description='Metal sleeves to keep the axles snug in the scaffolding.' %}
+
+{% include image.html url='2015-01-10 20.33.31.jpg' description='Putting the trailer hub together' %}
+
 {% include image.html url='CIMG8322.JPG' description='We needed to clear the hub to attach it to the mounting point, so we came up with an interim solution involving a few washers.' %}
 
 {% include image.html url='CIMG8327.JPG' description='' %}
@@ -186,7 +192,7 @@ a scaffold pipe.
 
 We essentially did the same thing for the bottom, but because the bottom hub
 would be resting on, and screwed directly to, a big piece of metal, it didn't
-need any fastenings.
+need the same adhoc fastenings.
 
 {% include image.html url='2015-01-16 14.22.43.jpg' description='' %}
 
@@ -197,7 +203,7 @@ One challenge for me was how to transfer power across the axle. Fortunately,
 when I asked friends about this they all said "You need a slip ring!", and lo I 
 [found one on ebay](http://www.ebay.com/sch/moflon_company/m.html?_nkw=&_armrs=1&_ipg=&_from=).
 I bought a 12x10A connection slip ring from ebay for $US 325. While we only
-really needed 3 connections for single phase power, we figured that the
+needed 3 connections for single phase power, we figured that the
 slip-ring will be useful for future projects too.
 
 The mains power is then split to 4 x 20A 5V Meanwell power supplies, since I'd
@@ -222,28 +228,24 @@ There are a total of 12 curving struts, but each one is >3m long. I was using
 I split each strut's length of LEDs in half and sent a data signal from the top
 and bottom of the structure... just like I was doing with the 5V power.
 
-{% include image.html url='images/2015-01-11 13.55.09.jpg' description='' %}
-
 In the middle of the axle was a Raspberry Pi B, with the 4 port USB hub shield
 [Raspiado](https://www.kickstarter.com/projects/10la/raspiado-the-usb-hub-that-fits-your-raspberry-pi)
 (I'd backed the project a while ago, but didn't quite know what I was going to
-use it for at the time!). Each Fadecandy is controlled via USB, a connected by
-a 1.5m length of USB cable to the Raspiado. The Fadecandies themselves were
+use it for at the time).
+
+{% include image.html url='2015-01-11 13.55.09.jpg' description='' %}
+
+Each Fadecandy is controlled via USB, connected by
+a 1.5m length of USB cable to the Raspiado. The Fadecandies were
 placed two at the top of the axle, and two at bottom. They were mounted on
 a prototype board and placed in old plastic pill bottles for shelter from the
 elements:
 
-{% include image.html url='images/2015-01-17 10.47.30.jpg' description='' %}
+{% include image.html url='2015-01-17 10.47.30.jpg' description='' %}
 
-{% include image.html url='images/2015-01-03 16.21.53.jpg' description='Initially I\'d tired using some alkathyne piping I had left over from The Sensorium, but there really wasn't going to be enough space for the signal wires to get soldered on.' %}
+{% include image.html url='2015-01-03 16.21.53.jpg' description='Initially I\'d tired using some alkathyne piping I had left over from The Sensorium, but there really wasn\'t going to be enough space for the signal wires to get soldered on.' %}
 
-{% include image.html url='images/2015-01-17 10.47.15.jpg' description='' %}
-
-{% include image.html url='images/2015-01-10 20.33.38.jpg' description='' %}
-{% include image.html url='images/2015-01-10 20.15.29.jpg' description='' %}
-{% include image.html url='images/2015-01-10 20.33.31.jpg' description='' %}
-
-{% include image.html url='images/2015-01-16 14.23.05.jpg' description='' %}
+{% include image.html url='2015-01-17 10.47.15.jpg' description='The dining table was a makeshift electronics workbench while building the wiring loom. Still really want a decent workshop!'  %}
 
 All the electronics were sealed with a less than perfect combination of
 sealable plastic lunchboxes, [heat-shrink tubing](http://en.wikipedia.org/wiki/Heat-shrink_tubing) and insulation tape. In some
@@ -254,7 +256,9 @@ If you don't then you can end up creating jerry-rigged sub-optimal solutions. Wh
 can be fun to fumble through, so long as you don't have to do it for your
 entire project!
 
-{% include image.html url='images/2015-01-15 21.30.54.jpg' description='There were several late nights before kiwiburn soldering things while enjoying a whiskey with ice ball.' %}
+{% include image.html url='2015-01-16 14.23.05.jpg' description='' %}
+
+{% include image.html url='2015-01-15 21.30.54.jpg' description='There were several late nights before kiwiburn soldering things while enjoying a whiskey with ice ball.' %}
 
 ## Software
 
@@ -302,9 +306,9 @@ quoted me for all the bits we'd need, and they sent it by freight to my house.
 Alas, this took a number of days longer than expected and when it arrived we
 had less than a week before kiwiburn to get things mounted.
 
-{% include image.html url='images/2015-01-14 09.40.03.jpg' description='' %}
+{% include image.html url='2015-01-14 09.40.03.jpg' description='' %}
 
-{% include image.html url='images/2015-01-14 17.05.21.jpg' description='' %}
+{% include image.html url='2015-01-14 17.05.21.jpg' description='' %}
 
 {% include image.html url='IMG_2100.jpg' description='' %}
 
@@ -325,15 +329,10 @@ had less than a week before kiwiburn to get things mounted.
 
 {% include image.html url='CIMG8378%203.JPG' description='' %}
 
-{% include image.html url='CIMG8388%202.JPG' description='' %}
-
 ## Test Run
 
-{% include image.html url='images/2015-01-17 20.26.52.jpg' description='' %}
-
-Blow up of one arm of leds, because someone had reversed polarity on the 5V
-power line on that arm. Ironically 
-
+{% include image.html url='2015-01-17 20.26.52.jpg' description='' %}
+{% include image.html url='CIMG8388%202.JPG' description='' %}
 {% include image.html url='CIMG8387%202.JPG' description='' %}
 {% include image.html url='CIMG8394%202.JPG' description='' %}
 {% include image.html url='CIMG8395%202.JPG' description='' %}
