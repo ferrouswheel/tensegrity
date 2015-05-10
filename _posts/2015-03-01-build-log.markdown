@@ -33,7 +33,7 @@ projects ideas over the cliche napkin.
 
 I was being quite ambitious; I knew nothing about slip rings, welding, or working with metal when I started.  As a scientist and software developer, I’m happy working with complex ideas and creating elegant representations of abstract concepts, but creating giant spinning metal sculptures in the real world was something very different!
 
-I called out to my community for people keen to help me with this audacious idea, and had many wonderful people offer assistance. The most valuable in making the project succeed (and in easing my trepidation at trying to pull this off) was that of [Patrick Herd](http://www.pnuke.co.nz/) who took the lead on the mechanical engineer and construction techniques, and [Felicia Ulsted](http://feliciaullstad.com/) who helped with the metal working and construction.
+I called out to my community for people keen to help me with this audacious idea, and had many wonderful people offer assistance. The most valuable in making the project succeed (and in easing my trepidation at trying to pull this off) was that of [Patrick Herd](http://www.pnuke.co.nz/) who took the lead on the mechanical engineer and construction techniques, and [Felicia Ullstad](http://feliciaullstad.com/) who helped with the metal working and construction.
 
 Tensegrity is what I’d consider my first serious foray into doing art installations, and while I’m very happy with the end result, the real joy came from everything I learnt during it and seeing other people’s reactions at Kiwiburn!
 
