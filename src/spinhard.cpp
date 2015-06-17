@@ -42,6 +42,10 @@ int constant_rpm = 70;
 int constant_rpm = 0;
 #endif
 
+// should probably be passed through effect runner, but that requires more
+// modification to the default fadecandy code.
+float rotorAngle = 0.0f;
+
 int NUM_EFFECTS=6;
 const char* effectIndex[] = {
     "falling",
@@ -124,7 +128,6 @@ public:
 
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
     {
-        //const float speed = 10.0;
         int spoke = spokeNumberForIndex(p.index);
 
         bool reverse = false;
@@ -170,7 +173,6 @@ public:
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
     {
         const float speed = 10.0;
-        //float distance = len(p.point);
         float mahHue = hues[hue][0] / 360.0f;
         float height = (p.point[2] - minz) / (maxz - minz);
         height += (maxz*channel);
@@ -202,7 +204,6 @@ public:
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
     {
         const float speed = 10.0;
-        //float distance = len(p.point);
         float mahHue = hues[hue][channel] / 360.0f;
         float v = fbm_noise4(p.point[0], p.point[1], p.point[2], t, 2);
         hsv2rgb(rgb, mahHue, 0.7, 0.4 + v);
@@ -232,7 +233,6 @@ public:
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
     {
         const float speed = 10.0;
-        //float distance = len(p.point);
         float mahHue = hues[hue][channel] / 360.0f;
         float v = fmodf((t * speed + p.index), 50.0f) / 50.0f;
         hsv2rgb(rgb, mahHue, 0.4, v);
@@ -248,21 +248,16 @@ class ReverseEffect : public TEffect
 {
 public:
     ReverseEffect(int channel)
-        : TEffect(channel), hue(0), t(0.0f), revPerSecond(0.0f), currentAngle(0.0f) {}
+        : TEffect(channel), hue(0), t(0.0f), currentAngle(0.0f) {}
 
     int hue;
     float t;
-    float revPerSecond;
     float currentAngle;
 
     virtual void beginFrame(const FrameInfo &f)
     {
-        revPerSecond = 1.0f;
         TEffect::beginFrame(f);
-        currentAngle -= (f.timeDelta * ( 2*M_PI * (revPerSecond + 1.0)));
-        if (currentAngle < 0) {
-            currentAngle += M_PI * 2.0f;
-        }
+        currentAngle = -rotorAngle;
     }
 
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
@@ -271,8 +266,8 @@ public:
 
         float spokeAngle = (angleDelta * spoke) - M_PI;
 
-        //float d = currentAngle - spokeAngle;
-        float angleDiff = diffAngleRadians(currentAngle - M_PI, spokeAngle); //atan2(fast_sin(d), fast_cos(d));
+        float angleDiff = diffAngleRadians(currentAngle - M_PI, spokeAngle);
+
         float v = 1.0 - (2*(fabs(angleDiff) / (M_PI)));
         //fprintf(stderr, "currentAngle %.2f spoke %d angleDiff %.2f v %.2f\n", currentAngle, spoke, angleDiff, v);
         float mahHue = hues[hue][channel] / 360.0f;
@@ -636,9 +631,9 @@ int main(int argc, char **argv)
     while (true) {
 #if __APPLE__
         float fr = averageFrameRate(effect_runners);
-        float angle = readAngle(encoder, fr);
+        rotorAngle = readAngle(encoder, fr);
 #else
-        float angle = readAngle(encoder, 0.0f);
+        rotorAngle = readAngle(encoder, 0.0f);
 #endif
 
         for (int i=0 ; i < layers; i++) {
