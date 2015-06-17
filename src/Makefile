@@ -16,8 +16,17 @@ CFLAGS += -Wno-tautological-constant-out-of-range-compare -Wno-gnu-static-float-
 
 all: $(PROGRAMS)
 
+.c:
+	$(CC) $(CFLAGS) $< -o $@ $(LFLAGS)
+
 .cpp:
 	$(CC) $(CFLAGS) $< -o $@ $(LFLAGS)
+
+.o:
+	$(CC) $(CFLAGS) $< -o $@
+
+spinhard: spinhard.o rotaryencoder.o
+	$(CC) $(CFLAGS) spinhard.o rotaryencoder.o -o $@ $(LFLAGS)
 
 .PHONY: clean all
 
