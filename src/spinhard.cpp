@@ -248,25 +248,23 @@ class ReverseEffect : public TEffect
 {
 public:
     ReverseEffect(int channel)
-        : TEffect(channel), hue(0), t(0.0f), currentAngle(0.0f) {}
+        : TEffect(channel), hue(0), t(0.0f) {}
 
     int hue;
     float t;
-    float currentAngle;
 
     virtual void beginFrame(const FrameInfo &f)
     {
         TEffect::beginFrame(f);
-        currentAngle = -rotorAngle;
     }
 
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
     {
         int spoke = spokeNumberForIndex(p.index);
 
-        float spokeAngle = (angleDelta * spoke) - M_PI;
+        float spokeAngle = (angleDelta * spoke);
 
-        float angleDiff = diffAngleRadians(currentAngle - M_PI, spokeAngle);
+        float angleDiff = diffAngleRadians(-rotorAngle, spokeAngle);
 
         float v = 1.0 - (2*(fabs(angleDiff) / (M_PI)));
         //fprintf(stderr, "currentAngle %.2f spoke %d angleDiff %.2f v %.2f\n", currentAngle, spoke, angleDiff, v);
@@ -567,8 +565,9 @@ float averageFrameRate(std::vector<EffectRunner*> er) {
 }
 
 float readAngle(struct encoder *encoder, float frameRate) {
-    static long value = 0;
-    long l;
+    static float value = 0;
+    static float ticks_per_second = ROTARY_TICKS_PER_REVOLUTION * ( constant_rpm / 60.0 );
+    float l;
 
     if (encoder != NULL && constant_rpm > 0) {
         // shouldn't need this because interrupt is setup..
@@ -577,12 +576,11 @@ float readAngle(struct encoder *encoder, float frameRate) {
     } else {
         if (frameRate == 0) { return 0.0f; }
     
-        int ticks_per_second = ROTARY_TICKS_PER_REVOLUTION * ( constant_rpm / 60.0 );
         l = value + (ticks_per_second / frameRate);
     }
     value = l;
 
-    return PIV2 * (( value % ROTARY_TICKS_PER_REVOLUTION ) / float(ROTARY_TICKS_PER_REVOLUTION));
+    return PIV2 * (( int(value) % ROTARY_TICKS_PER_REVOLUTION ) / float(ROTARY_TICKS_PER_REVOLUTION));
 }
 
 int main(int argc, char **argv)
