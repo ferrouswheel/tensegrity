@@ -8,6 +8,7 @@
 
 #include "lib/color.h"
 #include "tensegrity_effect.h"
+#include "rotaryencoder.h"
 #include "lib/effect_runner.h"
 #include "lib/noise.h"
  
@@ -15,6 +16,8 @@
 #define ALL_LAYERS NUM_LAYERS
 
 #define NUM_HUES 7
+
+#define ROTARY_TICKS_PER_REVOLUTION 360
 
 Effect** effects;
 
@@ -30,6 +33,15 @@ int hues[NUM_HUES][NUM_LAYERS] = {
 
 bool randomEffects = false;
 
+#define DEFAULT_FRAME_RATE 50
+
+// 0 indicates that we should read the rpm from the rotary encoder
+#if __APPLE__
+int constant_rpm = 70;
+#else
+int constant_rpm = 0;
+#endif
+
 int NUM_EFFECTS=6;
 const char* effectIndex[] = {
     "falling",
@@ -43,7 +55,7 @@ const char* effectIndex[] = {
 #define PIV2 (M_PI+M_PI)
 #define C360 360.0000000000000000000
 
-double difangrad(double x, double y)
+double diffAngleRadians(double x, double y)
 {
     double arg;
 
@@ -260,7 +272,7 @@ public:
         float spokeAngle = (angleDelta * spoke) - M_PI;
 
         //float d = currentAngle - spokeAngle;
-        float angleDiff = difangrad(currentAngle - M_PI, spokeAngle); //atan2(fast_sin(d), fast_cos(d));
+        float angleDiff = diffAngleRadians(currentAngle - M_PI, spokeAngle); //atan2(fast_sin(d), fast_cos(d));
         float v = 1.0 - (2*(fabs(angleDiff) / (M_PI)));
         //fprintf(stderr, "currentAngle %.2f spoke %d angleDiff %.2f v %.2f\n", currentAngle, spoke, angleDiff, v);
         float mahHue = hues[hue][channel] / 360.0f;
@@ -273,17 +285,27 @@ public:
     }
 };
 
-
-void argumentUsage()
+Effect* createEffect(const char *effectName, int channel)
 {
-    fprintf(stderr, "[-v] [-fps LIMIT] [-random] [-speed MULTIPLIER] [-server HOST[:port]]");
-}
-
-void usage(const char *name)
-{
-    fprintf(stderr, "usage: %s ", name);
-    argumentUsage();
-    fprintf(stderr, "\n");
+    if (strcmp(effectName, "falling") == 0) {
+        return new MyEffect(channel);
+    }
+    else if (strcmp(effectName, "python") == 0) {
+        return new PythonEffect(channel);
+    }
+    else if (strcmp(effectName, "processing") == 0) {
+        return new ProcessingEffect(channel);
+    }
+    else if (strcmp(effectName, "perlin") == 0) {
+        return new PerlinEffect(channel);
+    }
+    else if (strcmp(effectName, "fire") == 0) {
+        return new FireEffect(channel);
+    }
+    else if (strcmp(effectName, "reverse") == 0) {
+        return new ReverseEffect(channel);
+    }
+    return NULL;
 }
 
 bool changeSpeed(int channel, float speed, std::vector<EffectRunner*> er) {
@@ -300,6 +322,40 @@ bool changeSpeed(int channel, float speed, std::vector<EffectRunner*> er) {
     return true;
 }
 
+inline void _changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
+    Effect *oldEffect = effects[channel];
+
+    effects[channel] = createEffect(effectName, channel);
+    er[channel]->setEffect(effects[channel]);
+
+    if (oldEffect != NULL) { delete oldEffect; }
+}
+
+void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
+    fprintf(stderr, "\nchange effect to %s\n", effectName);
+    if (channel >= ALL_LAYERS) {
+        for (int i = 0; i < NUM_LAYERS; ++i) {
+            _changeEffect(i, effectName, er);
+        }
+    } else {
+        _changeEffect(channel, effectName, er);
+    }
+}
+
+bool changeColour(int channel, std::vector<EffectRunner*> er) {
+    std::vector<EffectRunner*>::const_iterator it;
+    if (channel >= ALL_LAYERS) {
+        for (it = er.begin(); it != er.end(); ++it) {
+            TEffect* e = (TEffect*) (*it)->getEffect();
+            e->nextColor();
+        }
+    } else {
+        TEffect* e = (TEffect*) er[channel]->getEffect();
+        e->nextColor();
+    }
+    return true;
+}
+
 bool parseArgument(int &i, int &argc, char **argv, std::vector<EffectRunner*> er)
 {
     std::vector<EffectRunner*>::const_iterator it;
@@ -311,6 +367,16 @@ bool parseArgument(int &i, int &argc, char **argv, std::vector<EffectRunner*> er
 
     if (!strcmp(argv[i], "-random")) {
         randomEffects = true;
+        return true;
+    }
+
+    if (!strcmp(argv[i], "-rpm")) {
+        float rate = atof(argv[++i]);
+        if (rate < 0) {
+            fprintf(stderr, "Invalid rpm\n");
+            return false;
+        }
+        constant_rpm = int(rate);
         return true;
     }
 
@@ -341,6 +407,18 @@ bool parseArgument(int &i, int &argc, char **argv, std::vector<EffectRunner*> er
     }
 
     return false;
+}
+
+void argumentUsage()
+{
+    fprintf(stderr, "[-v] [-fps LIMIT] [-random] [-speed MULTIPLIER] [-server HOST[:port]]");
+}
+
+void usage(const char *name)
+{
+    fprintf(stderr, "usage: %s ", name);
+    argumentUsage();
+    fprintf(stderr, "\n");
 }
 
 bool parseArguments(int argc, char **argv, std::vector<EffectRunner*> er)
@@ -393,64 +471,6 @@ void nonblock(int state)
  
 }
 
-Effect* createEffect(const char *effectName, int channel)
-{
-    if (strcmp(effectName, "falling") == 0) {
-        return new MyEffect(channel);
-    }
-    else if (strcmp(effectName, "python") == 0) {
-        return new PythonEffect(channel);
-    }
-    else if (strcmp(effectName, "processing") == 0) {
-        return new ProcessingEffect(channel);
-    }
-    else if (strcmp(effectName, "perlin") == 0) {
-        return new PerlinEffect(channel);
-    }
-    else if (strcmp(effectName, "fire") == 0) {
-        return new FireEffect(channel);
-    }
-    else if (strcmp(effectName, "reverse") == 0) {
-        return new ReverseEffect(channel);
-    }
-    return NULL;
-}
-
-inline void _changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
-    Effect *oldEffect = effects[channel];
-
-    effects[channel] = createEffect(effectName, channel);
-    er[channel]->setEffect(effects[channel]);
-
-    if (oldEffect != NULL) { delete oldEffect; }
-}
-
-void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
-    fprintf(stderr, "\nchange effect to %s\n", effectName);
-    if (channel >= ALL_LAYERS) {
-        for (int i = 0; i < NUM_LAYERS; ++i) {
-            _changeEffect(i, effectName, er);
-        }
-    } else {
-        _changeEffect(channel, effectName, er);
-    }
-}
-
-bool changeColour(int channel, std::vector<EffectRunner*> er) {
-    std::vector<EffectRunner*>::const_iterator it;
-    if (channel >= ALL_LAYERS) {
-        for (it = er.begin(); it != er.end(); ++it) {
-            TEffect* e = (TEffect*) (*it)->getEffect();
-            e->nextColor();
-        }
-    } else {
-        TEffect* e = (TEffect*) er[channel]->getEffect();
-        e->nextColor();
-    }
-    return true;
-}
-
-
 void checkController(std::vector<EffectRunner*> er) {
     /*
      * This currently just listens for keypresses on the console.
@@ -499,8 +519,6 @@ void checkRandom(std::vector<EffectRunner*> er) {
         return;
     }
 
-    std::vector<EffectRunner*>::const_iterator it;
-
     fprintf(stderr, "\nrandom change... \n");
 
     // Select which channel we're affecting, with a bias towards all
@@ -539,6 +557,39 @@ void checkRandom(std::vector<EffectRunner*> er) {
 
 }
 
+float averageFrameRate(std::vector<EffectRunner*> er) {
+    int effects = 0;
+    float totalFrames = 0.0f;
+
+    std::vector<EffectRunner*>::const_iterator it;
+
+    for (it = er.begin(); it != er.end(); ++it) {
+        totalFrames += (*it)->getFrameRate();
+        effects += 1;
+    }
+
+    return totalFrames / effects;
+}
+
+float readAngle(struct encoder *encoder, float frameRate) {
+    static long value = 0;
+    long l;
+
+    if (encoder != NULL && constant_rpm > 0) {
+        // shouldn't need this because interrupt is setup..
+        //updateEncoders();
+        l = encoder->value;
+    } else {
+        if (frameRate == 0) { return 0.0f; }
+    
+        int ticks_per_second = ROTARY_TICKS_PER_REVOLUTION * ( constant_rpm / 60.0 );
+        l = value + (ticks_per_second / frameRate);
+    }
+    value = l;
+
+    return PIV2 * (( value % ROTARY_TICKS_PER_REVOLUTION ) / float(ROTARY_TICKS_PER_REVOLUTION));
+}
+
 int main(int argc, char **argv)
 {
     std::vector<EffectRunner*> effect_runners;
@@ -552,7 +603,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < layers; i++) {
         EffectRunner* r = new EffectRunner();
         effects[i] = NULL;
-        r->setMaxFrameRate(50);
+        r->setMaxFrameRate(DEFAULT_FRAME_RATE);
 
         r->setChannel(i);
         snprintf(buffer, 1000, "../Processing/tensegrity/opc_layout_%d.json", i);
@@ -569,10 +620,27 @@ int main(int argc, char **argv)
 
     parseArguments(argc, argv, effect_runners);
 
+    struct encoder *encoder = NULL;
+#if __APPLE__
+#else
+    if (constant_rpm) {
+        wiringPiSetup();
+        /*using pins 23/24*/
+        encoder = setupencoder(4,5);
+    }
+#endif
+
     if (!randomEffects) {
         nonblock(NB_ENABLE);
     }
     while (true) {
+#if __APPLE__
+        float fr = averageFrameRate(effect_runners);
+        float angle = readAngle(encoder, fr);
+#else
+        float angle = readAngle(encoder, 0.0f);
+#endif
+
         for (int i=0 ; i < layers; i++) {
             effect_runners[i]->doFrame();
         }
