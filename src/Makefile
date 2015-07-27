@@ -25,7 +25,7 @@ all: $(PROGRAMS)
 .o:
 	$(CC) $(CFLAGS) $< -o $@
 
-spinhard: spinhard.o rotaryencoder.o
+spinhard: spinhard.o rotaryencoder.o tensegrity_effect.h
 	$(CC) $(CFLAGS) spinhard.o rotaryencoder.o -o $@ $(LFLAGS)
 
 .PHONY: clean all

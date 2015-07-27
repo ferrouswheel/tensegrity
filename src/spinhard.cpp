@@ -10,26 +10,10 @@
 #include "tensegrity_effect.h"
 #include "rotaryencoder.h"
 #include "lib/effect_runner.h"
-#include "lib/noise.h"
  
-#define NUM_LAYERS 4
-#define ALL_LAYERS NUM_LAYERS
-
-#define NUM_HUES 7
-
 #define ROTARY_TICKS_PER_REVOLUTION 360
 
 Effect** effects;
-
-int hues[NUM_HUES][NUM_LAYERS] = {
-    { 0, 60, 120, 280 },
-    { 210, 240, 250, 260 },
-    { 110, 140, 150, 160 },
-    { 0, 20, 350, 320 },
-    { 150, 240, 250, 60 },
-    { 197, 227, 167, 197 },
-    { 300, 330, 151, 120 }
-};
 
 bool randomEffects = false;
 
@@ -37,245 +21,21 @@ bool randomEffects = false;
 
 // 0 indicates that we should read the rpm from the rotary encoder
 #if __APPLE__
-int constant_rpm = 70;
+int constant_rpm = 30;
 #else
 int constant_rpm = 0;
 #endif
 
-// should probably be passed through effect runner, but that requires more
-// modification to the default fadecandy code.
-float rotorAngle = 0.0f;
-
-int NUM_EFFECTS=6;
+int NUM_EFFECTS=8;
 const char* effectIndex[] = {
+    "plasma",
+    "zootsuit",
     "falling",
     "processing",
     "python",
     "perlin",
     "fire",
     "reverse"
-};
-
-#define PIV2 (M_PI+M_PI)
-#define C360 360.0000000000000000000
-
-double diffAngleRadians(double x, double y)
-{
-    double arg;
-
-    arg = fmod(y-x, PIV2);
-    if (arg < 0 )  arg  = arg + PIV2;
-    if (arg > M_PI) arg  = arg - PIV2;
-
-    return (-arg);
-}
-
-class MyEffect : public TEffect
-{
-public:
-    MyEffect(int channel)
-        : TEffect(channel), cycle (0), hue(0.2){}
-
-    virtual ~MyEffect() {}
-
-    float cycle;
-    float hue;
-
-    virtual void beginFrame(const FrameInfo &f)
-    {
-        TEffect::beginFrame(f);
-        const float speed = 10.0;
-        cycle = fmodf(cycle + f.timeDelta * speed, 2 * M_PI);
-    }
-
-    virtual void shader(Vec3& rgb, const PixelInfo &p) const
-    {
-        float distance = len(p.point);
-        float wave = sinf(3.0 * distance - cycle) + noise3(p.point);
-        int spoke = spokeNumberForIndex(p.index);
-        hsv2rgb(rgb, hue, 1.0 - (0.2 * (spoke+1)), wave);
-    }
-
-    virtual void nextColor() {
-        hue += 0.1f;
-        if (hue >= 1.0f) {
-            hue = 0.0f;
-        }
-
-    }
-};
-
-class ProcessingEffect: public TEffect
-{
-public:
-    ProcessingEffect(int channel)
-        : TEffect(channel), hue(0), t(0.0f) {}
-
-    int hue;
-    float t;
-    float M_2PI;
-    float time_divider;
-
-    virtual void beginFrame(const FrameInfo &f)
-    {
-        TEffect::beginFrame(f);
-        t += f.timeDelta;
-
-        M_2PI = 2*M_PI;
-        time_divider = M_2PI;
-            
-    }
-
-    virtual void shader(Vec3& rgb, const PixelInfo &p) const
-    {
-        int spoke = spokeNumberForIndex(p.index);
-
-        bool reverse = false;
-        if (channel % 2 != 0) { reverse = true; }
-      
-        int i = spoke;
-        float ai = i * angleDelta;
-
-        float k = p.index - strutOffsets[spoke];
-        float mahHue = hues[hue][channel];
-        
-        hsv2rgb(rgb,
-           fmodf(mahHue, 360.0f) / 360.0f,
-           (float(channel) / float(NUM_LAYERS)) * 0.50f,
-           fmodf(k * t/0.5, 100) / 100.0f
-        );
-    }
-
-    virtual void nextColor() {
-        hue += 1;
-        if (hue >= NUM_HUES) hue = 0;
-    }
-};
-
-class FireEffect : public TEffect
-{
-public:
-    FireEffect(int channel)
-        : TEffect(channel), hue(0), t(0.0f) {}
-
-    int hue;
-    float t;
-    float minz, maxz;
-
-    virtual void beginFrame(const FrameInfo &f)
-    {
-        TEffect::beginFrame(f);
-        t += f.timeDelta;
-        minz = f.modelMin[2];
-        maxz = f.modelMax[2];
-    }
-
-    virtual void shader(Vec3& rgb, const PixelInfo &p) const
-    {
-        const float speed = 10.0;
-        float mahHue = hues[hue][0] / 360.0f;
-        float height = (p.point[2] - minz) / (maxz - minz);
-        height += (maxz*channel);
-        float v = fbm_noise2(height, t, 4);
-        hsv2rgb(rgb, mahHue, v - height, 0.4 + (v * 0.6));
-    }
-
-    virtual void nextColor() {
-        hue += 1;
-        if (hue >= NUM_HUES) hue = 0;
-    }
-};
-
-class PerlinEffect : public TEffect
-{
-public:
-    PerlinEffect(int channel)
-        : TEffect(channel), hue(0), t(0.0f) {}
-
-    int hue;
-    float t;
-
-    virtual void beginFrame(const FrameInfo &f)
-    {
-        TEffect::beginFrame(f);
-        t += f.timeDelta;
-    }
-
-    virtual void shader(Vec3& rgb, const PixelInfo &p) const
-    {
-        const float speed = 10.0;
-        float mahHue = hues[hue][channel] / 360.0f;
-        float v = fbm_noise4(p.point[0], p.point[1], p.point[2], t, 2);
-        hsv2rgb(rgb, mahHue, 0.7, 0.4 + v);
-    }
-
-    virtual void nextColor() {
-        hue += 1;
-        if (hue >= NUM_HUES) hue = 0;
-    }
-};
-
-class PythonEffect : public TEffect
-{
-public:
-    PythonEffect(int channel)
-        : TEffect(channel), hue(0), t(0.0f) {}
-
-    int hue;
-    float t;
-
-    virtual void beginFrame(const FrameInfo &f)
-    {
-        TEffect::beginFrame(f);
-        t += f.timeDelta;
-    }
-
-    virtual void shader(Vec3& rgb, const PixelInfo &p) const
-    {
-        const float speed = 10.0;
-        float mahHue = hues[hue][channel] / 360.0f;
-        float v = fmodf((t * speed + p.index), 50.0f) / 50.0f;
-        hsv2rgb(rgb, mahHue, 0.4, v);
-    }
-
-    virtual void nextColor() {
-        hue += 1;
-        if (hue >= NUM_HUES) hue = 0;
-    }
-};
-
-class ReverseEffect : public TEffect
-{
-public:
-    ReverseEffect(int channel)
-        : TEffect(channel), hue(0), t(0.0f) {}
-
-    int hue;
-    float t;
-
-    virtual void beginFrame(const FrameInfo &f)
-    {
-        TEffect::beginFrame(f);
-    }
-
-    virtual void shader(Vec3& rgb, const PixelInfo &p) const
-    {
-        int spoke = spokeNumberForIndex(p.index);
-
-        float spokeAngle = (angleDelta * spoke);
-
-        float angleDiff = diffAngleRadians(-rotorAngle, spokeAngle);
-
-        float v = 1.0 - (2*(fabs(angleDiff) / (M_PI)));
-        //fprintf(stderr, "currentAngle %.2f spoke %d angleDiff %.2f v %.2f\n", currentAngle, spoke, angleDiff, v);
-        float mahHue = hues[hue][channel] / 360.0f;
-        hsv2rgb(rgb, mahHue, 0.4, v);
-    }
-
-    virtual void nextColor() {
-        hue += 1;
-        if (hue >= NUM_HUES) hue = 0;
-    }
 };
 
 Effect* createEffect(const char *effectName, int channel)
@@ -295,8 +55,14 @@ Effect* createEffect(const char *effectName, int channel)
     else if (strcmp(effectName, "fire") == 0) {
         return new FireEffect(channel);
     }
+    else if (strcmp(effectName, "plasma") == 0) {
+        return new PlasmaEffect(channel);
+    }
     else if (strcmp(effectName, "reverse") == 0) {
         return new ReverseEffect(channel);
+    }
+    else if (strcmp(effectName, "zootsuit") == 0) {
+        return new ZootSuitEffect(channel);
     }
     return NULL;
 }
