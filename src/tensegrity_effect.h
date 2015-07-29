@@ -221,8 +221,8 @@ public:
         float height = (p.point[2] - minz);
         float v = fbm_noise2(height, t, 4);
         float heightRange = layerHeight * NUM_LAYERS;
-        float val = 0.5 + (2.0f * v * (height + (channel * layerHeight)));
-        float sat = (0.5 * channel / 3) + (0.5 * height / layerHeight);
+        float val = 0.5f + (2.0f * v * (height + (channel * layerHeight)));
+        float sat = (0.2f * channel / 3.0f) + (0.9 * height / layerHeight);
         //fprintf(stderr,
            //"v %.2f height %.2f layerHeight %.2f val %.2f\n", v, height, layerHeight, val);
         hsv2rgb(rgb, mahHue, sat, val);
