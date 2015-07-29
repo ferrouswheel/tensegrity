@@ -16,6 +16,7 @@
 Effect** effects;
 
 bool randomEffects = false;
+bool testSequence = false;
 
 #define DEFAULT_FRAME_RATE 50
 
@@ -28,8 +29,8 @@ int constant_rpm = 0;
 
 int NUM_EFFECTS=8;
 const char* effectIndex[] = {
-    "plasma",
     "zootsuit",
+    "plasma",
     "falling",
     "processing",
     "python",
@@ -64,6 +65,9 @@ Effect* createEffect(const char *effectName, int channel)
     else if (strcmp(effectName, "zootsuit") == 0) {
         return new ZootSuitEffect(channel);
     }
+    else if (strcmp(effectName, "test") == 0) {
+        return new TestSequenceEffect(channel);
+    }
     return NULL;
 }
 
@@ -87,10 +91,15 @@ inline void _changeEffect(int channel, const char* effectName, std::vector<Effec
     effects[channel] = createEffect(effectName, channel);
     er[channel]->setEffect(effects[channel]);
 
-    if (oldEffect != NULL) { delete oldEffect; }
+    if (oldEffect != NULL) {
+        if (effects[channel] != NULL) {
+            ((TEffect*) effects[channel])->hue = ((TEffect*) oldEffect)->hue;
+        }
+        delete oldEffect;
+    }
 }
 
-void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> er) {
+void changeEffect(int channel, const char* effectName, std::vector<EffectRunner*> &er) {
     fprintf(stderr, "\nchange effect to %s\n", effectName);
     if (channel >= ALL_LAYERS) {
         for (int i = 0; i < NUM_LAYERS; ++i) {
@@ -121,6 +130,11 @@ bool parseArgument(int &i, int &argc, char **argv, std::vector<EffectRunner*> er
 
     if (!strcmp(argv[i], "-v")) {
         for (it = er.begin(); it != er.end(); ++it) { (*it)->setVerbose(true); }
+        return true;
+    }
+
+    if (!strcmp(argv[i], "-test-sequence")) {
+        testSequence = true;
         return true;
     }
 
@@ -349,6 +363,18 @@ float readAngle(struct encoder *encoder, float frameRate) {
     return PIV2 * (( int(value) % ROTARY_TICKS_PER_REVOLUTION ) / float(ROTARY_TICKS_PER_REVOLUTION));
 }
 
+void initEffects(std::vector<EffectRunner*> &effect_runners) {
+    int j = 0;
+    std::vector<EffectRunner*>::const_iterator it;
+    for (it = effect_runners.begin(); it != effect_runners.end(); ++it, ++j) {
+        if (testSequence) {
+            changeEffect(j, "test", effect_runners);
+        } else {
+            changeEffect(j, effectIndex[0], effect_runners);
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     std::vector<EffectRunner*> effect_runners;
@@ -370,14 +396,13 @@ int main(int argc, char **argv)
         r->setLayout(buffer);
         effect_runners.push_back(r);
     }
-
-    int j = 0;
-    std::vector<EffectRunner*>::const_iterator it;
-    for (it = effect_runners.begin(); it != effect_runners.end(); ++it, ++j) {
-        changeEffect(j, effectIndex[0], effect_runners);
-    }
+    
+    initEffects(effect_runners);
 
     parseArguments(argc, argv, effect_runners);
+    if (testSequence) {
+        initEffects(effect_runners);
+    }
 
     struct encoder *encoder = NULL;
 #if __APPLE__
@@ -393,6 +418,19 @@ int main(int argc, char **argv)
         nonblock(NB_ENABLE);
     }
     while (true) {
+        if (testSequence) {
+            // TODO check testDone on each effect then disable testSequence
+            // and replace effects 
+            if (effects[0] != NULL) {
+                if (((TestSequenceEffect*) effects[0])->testDone) {
+                    testSequence = false;
+                    initEffects(effect_runners);
+                }
+            } else {
+                fprintf(stderr, "null pointer for test effect\n");
+                return 1;
+            }
+        }
 #if __APPLE__
         float fr = averageFrameRate(effect_runners);
         rotorAngle = readAngle(encoder, fr);

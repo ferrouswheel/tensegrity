@@ -40,6 +40,11 @@ int hues[NUM_HUES][NUM_LAYERS] = {
 class TEffect : public Effect
 {
 public:
+    // Channels:
+    // 0 is outer radius
+    // 1 is reversed
+    // 2 is inner radius
+    // 3 is not used
     int channel;
     TEffect(int _channel) : channel(_channel), hue(0), t(0.0f) {};
 
@@ -58,6 +63,12 @@ public:
     float t;
     float minz, maxz;
     float layerHeight;
+
+    int spokeWrap(int spoke) const {
+        // + NUM_STRUTS to ensure we're positive when given a -1
+        return (spoke + NUM_STRUTS) % int(NUM_STRUTS);
+    }
+
 };
 
 inline void TEffect::nextColor() {
@@ -261,7 +272,6 @@ public:
     virtual void shader(Vec3& rgb, const PixelInfo &p) const
     {
         int spoke = spokeNumberForIndex(p.index);
-        float spokeAngle = spokeAngles[spoke];
         float angleDiff = spokeAngleOffsets[spoke];
 
         float v = 1.0 - (2*(fabs(angleDiff) / (M_PI)));
@@ -283,35 +293,122 @@ public:
     {
         int spoke = spokeNumberForIndex(p.index);
         float mahHue = hues[hue][channel] / 360.0f;
-        bool reverse = false;
 
-        float spokeAngle = spokeAngles[spoke];
         float angleDiff = spokeAngleOffsets[spoke];
         float height = (p.point[2] - minz);
 
-
         float _t = t * 1.0f;
-        int activeSpoke = int((_t / layerHeight)) % int(NUM_STRUTS);
-        if (activeSpoke % 2 != channel % 2){
-            hsv2rgb(rgb, mahHue, 0.1, 0.1);
+        int activeSpoke = spokeWrap(int((_t / layerHeight)));
+        float activeHeight = fmod(_t, layerHeight);
+
+        if (channel % 2 == 1) {
+            // middle strut goes bottom to top and has to be shifted forward one
+            // to cross over at the same time as the other channels.
+            activeSpoke = spokeWrap(activeSpoke + 1);
+            height = layerHeight - height;
+        }
+
+#ifdef DEBUG_ZOOT
+        if (activeSpoke == spoke) {
+            mahHue = 0.9;
+        } else {
+            mahHue = 0.7;
+        }
+#endif // DEBUG_ZOOT
+
+        if ( spokeWrap(activeSpoke - 1) == spoke ||
+             spokeWrap(activeSpoke + 1) == spoke ) {
+#ifdef DEBUG_ZOOT
+            mahHue = 0.1;
+#endif // DEBUG_ZOOT
+            if (height < layerHeight/2.0f) {
+                height = layerHeight + height;
+            } else {
+                height = height - layerHeight;
+            }
+        }
+
+#ifdef DEBUG_ZOOT
+        float dist = fabs(activeHeight - height);
+        if (dist > 0.4f) {
+            hsv2rgb(rgb, mahHue, 0.8, 0.0f);
             return;
         }
-        if (activeSpoke != spoke && ((spoke + 2) % NUM_STRUTS) != activeSpoke) {
-            hsv2rgb(rgb, mahHue, 0.1, 0.1);
-            return;
-        }
-        if (channel % 2 == 0) {
-            reverse = true;
-        }
-        float activePoint = fmod(_t, layerHeight);
-        if (reverse) {
-            activePoint = layerHeight - activePoint;
-        }
-        float v = 1.0f - fabs(activePoint - height);
+        float v = 1.0f;
+
         fprintf(stderr,
-           "activeSpoke %d activePoint %.2f v %.2f\n", activeSpoke, activePoint, v);
+           "spoke %d:%d active %d - point height %.2f / %.2f active %.2f  - v %.2f\n", channel, spoke, activeSpoke, height, layerHeight, activeHeight, v);
+#else
+        float v = 1.0f - fabs(activeHeight - height);
+#endif // DEBUG_ZOOT
 
         hsv2rgb(rgb, mahHue, 0.8, v);
+    }
+
+};
+
+class TestSequenceEffect : public TEffect
+{
+public:
+    TestSequenceEffect(int channel)
+        : TEffect(channel), loops(0), lastSpoke(0), testDone(false) {}
+
+    int loops;
+    int lastSpoke;
+    bool testDone;
+
+    virtual void beginFrame(const FrameInfo &f)
+    {
+        TEffect::beginFrame(f);
+
+        float _t = t / 1.0f;
+        int activeSpoke = spokeWrap(int((_t / layerHeight)));
+
+        if (activeSpoke == 0 and activeSpoke != lastSpoke) {
+            loops += 1;
+            if (loops >= 5) {
+                testDone = true;
+                fprintf(stderr, "test sequence finished!\n");
+            }
+        }
+        lastSpoke = activeSpoke;
+    }
+
+
+    virtual void shader(Vec3& rgb, const PixelInfo &p) const
+    {
+        int spoke = spokeNumberForIndex(p.index);
+        float mahHue = 0.1;
+
+        //float angleDiff = spokeAngleOffsets[spoke];
+        //float height = (p.point[2] - minz);
+        //bool upper = false;
+        //if (height > layerHeight / 2.0) {
+            //upper = true;
+        //}
+
+        float _t = t / 1.0f;
+        int activeSpoke = spokeWrap(int((_t / layerHeight)));
+
+        if (activeSpoke == spoke) {
+            float splitSize = 0.0f;
+            if (activeSpoke > 0) {
+                splitSize = layerHeight / (1 + activeSpoke * 2);
+            }
+            if (splitSize > 0.0f) {
+                float height = (p.point[2] - minz);
+
+                if (int(height / splitSize) % 2 == 0) {
+                    hsv2rgb(rgb, mahHue, 0.8, 0.8);
+                } else {
+                    hsv2rgb(rgb, mahHue, 0.8, 0.1);
+                }
+            } else {
+                hsv2rgb(rgb, mahHue, 0.8, 0.8);
+            }
+        } else {
+            hsv2rgb(rgb, mahHue, 0.8, 0.0);
+        }
     }
 
 };
