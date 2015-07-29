@@ -441,7 +441,7 @@ int main(int argc, char **argv)
         for (int i=0 ; i < layers; i++) {
             effect_runners[i]->doFrame();
         }
-        if (randomEffects) {
+        if (randomEffects && !testSequence) {
             checkRandom(effect_runners);
         } else {
             checkController(effect_runners);
