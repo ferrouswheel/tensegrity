@@ -3,8 +3,11 @@ tensegrity
 
 [Spin harder](http://ferrouswheel.github.io/tensegrity/)
 
-This is the repository for a kinetic and light art installation for Kiwiburn
-2015.
+This is the repository for a kinetic and light art installation originally
+shown at Kiwiburn 2015.
+
+It will also be shown it Wellington light festival
+[Lux 2015](http://lux.org.nz/?exhibitor=tensegrity).
 
 ## Getting started
 
