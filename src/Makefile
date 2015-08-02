@@ -16,14 +16,8 @@ CFLAGS += -Wno-tautological-constant-out-of-range-compare -Wno-gnu-static-float-
 
 all: $(PROGRAMS)
 
-.c:
-	$(CC) $(CFLAGS) $< -o $@ $(LFLAGS)
-
-.cpp:
-	$(CC) $(CFLAGS) $< -o $@ $(LFLAGS)
-
-.o:
-	$(CC) $(CFLAGS) $< -o $@
+spinhard.o: spinhard.cpp tensegrity_effect.h
+	$(CXX) -c $(CFLAGS) $< -o $@
 
 spinhard: spinhard.o rotaryencoder.o tensegrity_effect.h
 	$(CC) $(CFLAGS) spinhard.o rotaryencoder.o -o $@ $(LFLAGS)
