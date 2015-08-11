@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#if __APPLE__
+#ifndef __ROTARY__
 #else
 #include "rotaryencoder.h"
 

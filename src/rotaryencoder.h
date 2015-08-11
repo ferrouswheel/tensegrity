@@ -1,4 +1,4 @@
-#if __APPLE__
+#ifndef __ROTARY__
 // No wiring pi
 #else
 #include "wiringPi/wiringPi/wiringPi.h"

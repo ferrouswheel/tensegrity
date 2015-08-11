@@ -21,7 +21,7 @@ bool testSequence = false;
 #define DEFAULT_FRAME_RATE 50
 
 // 0 indicates that we should read the rpm from the rotary encoder
-#if __APPLE__
+#ifndef __ROTARY__
 int constant_rpm = 30;
 #else
 int constant_rpm = 0;
@@ -405,7 +405,7 @@ int main(int argc, char **argv)
     }
 
     struct encoder *encoder = NULL;
-#if __APPLE__
+#ifndef __ROTARY__
 #else
     if (constant_rpm) {
         wiringPiSetup();
@@ -431,7 +431,7 @@ int main(int argc, char **argv)
                 return 1;
             }
         }
-#if __APPLE__
+#ifndef __ROTARY__
         float fr = averageFrameRate(effect_runners);
         rotorAngle = readAngle(encoder, fr);
 #else
