@@ -20,7 +20,6 @@ the effects to it instead.
 
 ### Simulation
 
-- Install Processing and the gifAnimation plugin http://extrapixel.github.io/gif-animation/
 - Open the Processing sketch in "Processing/tensegrity".
 - If you push play you should see a rotating structure with light patterns.
 - The sketch will create an OPC server on all network interfaces on port 7890
