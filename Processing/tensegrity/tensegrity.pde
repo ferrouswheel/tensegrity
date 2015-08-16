@@ -1,14 +1,11 @@
-import gifAnimation.*;
 import java.nio.ByteBuffer;
 
 float cameraRotateX = -PI/2.0;
 float cameraRotateY = 0.0;
 
-float rpm = 70;
+float rpm = 1;
 float lastFrame = millis();
 float delta = 1.0;
-boolean doExport = false;
-GifMaker gifExport;
 float fr = 30;
 Rotor rotor;
 
@@ -56,21 +53,11 @@ void setup()
   rotor.saveFCLayout("fc_config");
   rotor.saveOPCLayout("opc");
   
-  if (doExport) {
-    frameRate(fr);
-  
-    gifExport = new GifMaker(this, "export.gif");
-    gifExport.setRepeat(0);             // make it an "endless" animation
-    //gifExport.setTransparent(0,0,0);    // black is transparent
-  }
 }
 
 
 void exit() {
   println("exiting");
-  if (doExport) {
-    gifExport.finish();
-  }
   super.exit();
 }
 
@@ -157,14 +144,6 @@ void draw()
     client = server.available();
   }
   
-  if (doExport) {
-    gifExport.setDelay((int)delta);
-    gifExport.addFrame();
-    if (frameCount == 60) {
-      gifExport.finish();
-      exit();
-    }
-  }
 }
 
 class Rotor { 
@@ -412,67 +391,6 @@ class Rotor {
     if (curvedStrut) {
       for (int i = 0; i < spokes; i++) {
         strutLengths[depth] = generateCurvedStrut(i, depth, spokeRadius, reverse);
-        // Bunch of crap to work out arc of curves from start/end/middle, to transform them into
-        // metal bits
-        /*PVector a = PVector.sub(spokeCoords[depth][0][spokeCoords[depth][0].length - 1],
-            spokeCoords[depth][0][0]);
-        float a_dist = a.mag();
-        
-        float sqR = (spokeRadius * spokeRadius);
-        float c = sqrt(sqR * 2.0);
-        float x = sqrt(sqR - ((c/2.0) * (c/2.0)));
-        float curveHeight = spokeRadius-x;
-        
-        println("a_dist: " + a_dist + " curve height: " + curveHeight);
-        
-        
-        
-        println("orig: " + spokeCoords[depth][0][0] + ", " + spokeCoords[depth][0][spokeCoords[depth][0].length - 1] );*/
-        
-        /*PVector[] translated = new PVector[spokeCoords[depth][0].length];
-        for (int j = 0; j < spokeCoords[depth][0].length; j++) {
-          translated[j] = PVector.sub(spokeCoords[depth][0][j],
-            spokeCoords[depth][0][0]);
-        }*/
-        /*
-        println("[" + translated[0] + ", ");
-        println(translated[translated.length / 2] + ", ");
-        println(translated[translated.length - 1] + "]");
-        */
-        //PVector a = translated[translated.length - 1];
-//        GG = @(A,B) [ dot(A,B) -norm(cross(A,B)) 0;\
-//              norm(cross(A,B)) dot(A,B)  0;\
-//              0              0           1];
-//
-//        FFi = @(A,B) [ A (B-dot(A,B)*A)/norm(B-dot(A,B)*A) cross(B,A) ];
-//
-//        UU = @(Fi,G) Fi*G*inv(Fi);
-//        a.normalize();
-//        PVector cp = a.cross(b);
-//        float dot = a.dot(b);
-//        float cp_length = cp.normalize();
-//        
-//        float[][] G;
-//        vx = new float[3][3];       
-//        G[0][0] = dot;
-//        G[0][1] = -cp_length;
-//        G[0][2] = 0.0f;
-//        G[1][0] = cp_length;
-//        G[1][1] = dot;
-//        G[1][2] = 0.0f;
-//        G[2][0] = 0.0f;
-//        G[2][1] = 0.0f;
-//        G[2][2] = 1;
-//        
-//        float[][] G;
-//        
-//        
-//        float[][] I = {
-//        {1.0f, 0.0f, 0.0f},
-//        {0.0f, 1.0f, 0.0f},
-//        {0.0f, 0.0f, 1.0f}
-//        };
-        
       }
     } else {
       for (int i = 0; i < spokes; i++) {
