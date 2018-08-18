@@ -1,4 +1,5 @@
 import java.nio.ByteBuffer;
+import processing.net.*;
 
 float cameraRotateX = -PI/2.0;
 float cameraRotateY = 0.0;
@@ -8,9 +9,6 @@ float lastFrame = millis();
 float delta = 1.0;
 float fr = 30;
 Rotor rotor;
-
-// Import the net libraries
-import processing.net.*;
 
 // Declare a server
 Server server;
@@ -32,8 +30,6 @@ void setup()
 {
   size(500, 500, P3D); 
   background(0);
-  //noStroke();
-  //colorMode(HSB, 100);
   colorMode(RGB, 255);
    
   // Create the Server on port 7890
@@ -154,7 +150,11 @@ class Rotor {
   int numDepths = 4;
   float angleDelta;
   boolean ledPoints = false; // use points instead of 3d boxes for LED positions
-  float density = 30.0/100.0; // 30 LEDs per metre
+  
+  // how many leds are on a single strut for index depth
+  int depthStrutLEDCount[] = { 102, 92, 90, 90 }; //{ 106, 98, 92, 92 };
+  int overlaps[] = {6, 7, 3, 0 }; // TODO: allow ultra intensity in middle by duplicating LEDs that are on 
+  
   int totalLEDs = 0;
   boolean curvedStrut = true;
   boolean opc = false;
@@ -240,11 +240,16 @@ class Rotor {
     ...
     ]
     */
+    String fadecandies[] = {
+      "RRTNNVHBZRCPWRYD", "WESKYKLJTBQTSHIL", // BOTTOM 
+      "DHYQPBJLPHIJYPWT", "RRJDTNSEJJSXOLEB", // TOP
+    };
+    String fc_ip = "192.168.42.1";
     PrintWriter output;
     // Create a new file in the sketch directory
     output = createWriter(fn + ".json");
     output.println("{\n" + 
-    "\"listen\": [\"127.0.0.1\", 7890],\n" +
+    "\"listen\": [\"" + fc_ip + "\", 7890],\n" +
     "\"verbose\": true,\n" + 
     "\n" +
     "\"color\": {\n" +
@@ -258,37 +263,73 @@ class Rotor {
     // at the top or bottom.
     int chans = int(numDepths);
     
-    println("chans! " + chans);
-    
-    int[] opc_led_count = new int[chans];
-    for (int chan=0; chan < chans; chan++) {
-      opc_led_count[chan] = 0;
-    }
-    
-    for (int fc=0; fc < spokes; fc++) {
-      /*boolean latter_spoke = false;
-      boolean top = true;
-      if (fc % (spokes/2)) latter_spoke = true;
-      if (fc > (spokes/2)) top = false;*/
+    for (int fc=0; fc < fadecandies.length; fc++) {
+      boolean bottom = true;
+      if (fc >= 2) bottom = false;
+      
       output.println("{\n  \"type\": \"fadecandy\",");
-      output.println("  \"serial\": \"REPLACEME\",");
+      output.println("  \"serial\": \"" + fadecandies[fc] + "\",");
       output.println("  \"map\": [");
-      int fc_port = 0;
-      for (int chan=0; chan < chans; chan++) {
-        int ledCount = spokeCoords[chan][0].length / 2;
-        output.println("    [ " + chan + ", " + opc_led_count[chan] + ", " + (fc_port * 64) + ", " + ledCount + "]," );
-        fc_port += 1;
-        opc_led_count[chan] += ledCount;
+      
+      for (int fc_port=0; fc_port < 8; fc_port++) {
+        int chan = fc_port % chans;
+       
+        int spoke = 0;
+        if (fc_port >= chans) {
+          spoke += 1;
+        }
+        if (fc % 2 == 1) {
+          spoke += 2; // if next segment then +2 spokes
+        }
         
-        ledCount = spokeCoords[chan][0].length / 2;
-        output.println("    [ " + chan + ", " + opc_led_count[chan] + ", " + (fc_port * 64) + ", " + ledCount + "]," );
-        fc_port += 1;
-        opc_led_count[chan] += ledCount;
+        // Because of cable layout, it is easier to reverse these
+        if (fc == 1 || fc == 2) {
+          if (fc_port >= chans) {
+            spoke -= 1;
+          } else {
+            spoke += 1;
+          }
+        }
+        
+        if (!bottom) {
+          // Channels are begin from top, but they cross to a different spoke above...
+          // but in different directions depending on the channel!
+          if (chan % 2 == 1) { // reversed
+            spoke += 1;
+          } else {
+            spoke += 1;
+          }
+          spoke += 2;
+          
+          if (spoke < 0) {
+            spoke += 4;
+          } else {
+            spoke = spoke % 4;
+          } 
+        }
+        
+        int strutLEDCount = spokeCoords[chan][0].length;
+        int pixelOffset = spoke * strutLEDCount;
+        if (!bottom) {
+          pixelOffset += (strutLEDCount / 2);
+        }
+        
+        output.print("    [ " + chan + ", " + pixelOffset + ", " + (fc_port * 64) + ", " + (strutLEDCount / 2) + "]" );
+        if (fc_port != 7) {
+           output.println(",");
+        } else {
+           output.println("");
+        }
       }
-      output.println("  ]\n},");
+      
+      if (fc != fadecandies.length - 1) {
+        output.println("  ]\n},");
+      } else {
+        output.println("  ]\n}");
+      }
     }
     
-    output.println("]");
+    output.println("]\n}\n");
     output.flush();
     output.close();
   }
@@ -343,7 +384,7 @@ class Rotor {
     
     float d0 = sqrt(triangleBase*triangleBase + rh*rh);
     println("circumference=" + (spokeRadius*(2*PI)) + " rh=" + rh + " spokeRadius=" + spokeRadius + " triangleBase=" + triangleBase + " d0=" + d0);
-    int numDots = int(d0 * density);
+    int numDots = depthStrutLEDCount[depth];
     totalLEDs += numDots;
     
     spokeCoords[depth][i] = getPointsOnHelix(numDots, i, depth, spokeRadius, reverse);
@@ -359,7 +400,7 @@ class Rotor {
     
     float d0 = dist(startV.x, startV.y, startV.z,
                   endV.x, endV.y, endV.z);
-    int numDots = int(d0 * density);
+    int numDots = depthStrutLEDCount[depth];
     totalLEDs += numDots;
     
     spokeCoords[depth][i] = new PVector[numDots];
